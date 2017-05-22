@@ -43,7 +43,12 @@ class CChainParams;
 struct CCheckpointData;
 class CTxMemPool;
 class ChainstateManager;
+<<<<<<< HEAD
 class SnapshotMetadata;
+||||||| parent of 9558f4ec9bf (Add -estlog option for saving live fee estimation data)
+=======
+class FeeEstInput;
+>>>>>>> 9558f4ec9bf (Add -estlog option for saving live fee estimation data)
 struct ChainTxData;
 struct DisconnectedBlockTransactions;
 struct PrecomputedTransactionData;
