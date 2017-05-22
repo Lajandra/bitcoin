@@ -43,6 +43,7 @@ export LC_ALL=C
 KNOWN_VIOLATIONS=(
     "src/dbwrapper.cpp:.*vsnprintf"
     "src/test/dbwrapper_tests.cpp:.*snprintf"
+    "src/test/fee_est/fee_est.cpp:.*printf"
     "src/test/fuzz/locale.cpp"
     "src/test/fuzz/string.cpp"
     "src/torcontrol.cpp:.*strtol"
