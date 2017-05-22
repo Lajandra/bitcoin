@@ -14,8 +14,13 @@ import sys
 EXPECTED_CIRCULAR_DEPENDENCIES = (
     "chainparamsbase -> util/system -> chainparamsbase",
     "node/blockstorage -> validation -> node/blockstorage",
+<<<<<<< HEAD
     "node/utxo_snapshot -> validation -> node/utxo_snapshot",
     "policy/fees -> txmempool -> policy/fees",
+||||||| parent of 95846278007 (Add -estlog option for saving live fee estimation data)
+    "policy/fees -> txmempool -> policy/fees",
+=======
+>>>>>>> 95846278007 (Add -estlog option for saving live fee estimation data)
     "qt/addresstablemodel -> qt/walletmodel -> qt/addresstablemodel",
     "qt/recentrequeststablemodel -> qt/walletmodel -> qt/recentrequeststablemodel",
     "qt/sendcoinsdialog -> qt/walletmodel -> qt/sendcoinsdialog",
