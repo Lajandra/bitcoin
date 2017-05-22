@@ -45,6 +45,13 @@ from subprocess import check_output, CalledProcessError
 
 KNOWN_VIOLATIONS = [
     "src/dbwrapper.cpp:.*vsnprintf",
+<<<<<<< HEAD
+||||||| parent of 1288ad00a52 (Add fee_est tool for debugging fee estimation code)
+    "src/test/dbwrapper_tests.cpp:.*snprintf",
+=======
+    "src/test/dbwrapper_tests.cpp:.*snprintf",
+    "src/test/fee_est/fee_est.cpp:.*printf",
+>>>>>>> 1288ad00a52 (Add fee_est tool for debugging fee estimation code)
     "src/test/fuzz/locale.cpp:.*setlocale",
     "src/test/fuzz/string.cpp:.*strtol",
     "src/test/fuzz/string.cpp:.*strtoul",
