@@ -46,6 +46,7 @@ from subprocess import check_output, CalledProcessError
 KNOWN_VIOLATIONS = [
     "src/dbwrapper.cpp:.*vsnprintf",
     "src/test/dbwrapper_tests.cpp:.*snprintf",
+    "src/test/fee_est/fee_est.cpp:.*printf",
     "src/test/fuzz/locale.cpp:.*setlocale",
     "src/test/fuzz/string.cpp:.*strtol",
     "src/test/fuzz/string.cpp:.*strtoul",
