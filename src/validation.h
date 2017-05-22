@@ -43,6 +43,7 @@ class CChainParams;
 struct CCheckpointData;
 class CTxMemPool;
 class ChainstateManager;
+class FeeEstInput;
 class SnapshotMetadata;
 struct ChainTxData;
 struct DisconnectedBlockTransactions;
