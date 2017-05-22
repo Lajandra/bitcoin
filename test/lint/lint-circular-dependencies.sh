@@ -14,8 +14,13 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "index/blockfilterindex -> node/blockstorage -> validation -> index/blockfilterindex"
     "index/base -> validation -> index/blockfilterindex -> index/base"
     "index/coinstatsindex -> node/coinstats -> index/coinstatsindex"
+<<<<<<< HEAD
     "policy/fees -> txmempool -> policy/fees"
     "policy/rbf -> txmempool -> validation -> policy/rbf"
+||||||| parent of e1bc53147e2 (Add -estlog option for saving live fee estimation data)
+    "policy/fees -> txmempool -> policy/fees"
+=======
+>>>>>>> e1bc53147e2 (Add -estlog option for saving live fee estimation data)
     "qt/addresstablemodel -> qt/walletmodel -> qt/addresstablemodel"
     "qt/recentrequeststablemodel -> qt/walletmodel -> qt/recentrequeststablemodel"
     "qt/sendcoinsdialog -> qt/walletmodel -> qt/sendcoinsdialog"
