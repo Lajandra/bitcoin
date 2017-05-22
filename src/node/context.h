@@ -20,7 +20,12 @@ class CConnman;
 class CScheduler;
 class CTxMemPool;
 class ChainstateManager;
+<<<<<<< HEAD
 class NetGroupManager;
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+=======
+class FeeEstInput;
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
 class PeerManager;
 namespace interfaces {
 class Chain;
@@ -48,7 +53,12 @@ struct NodeContext {
     std::unique_ptr<AddrMan> addrman;
     std::unique_ptr<CConnman> connman;
     std::unique_ptr<CTxMemPool> mempool;
+<<<<<<< HEAD
     std::unique_ptr<const NetGroupManager> netgroupman;
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+=======
+    std::unique_ptr<FeeEstInput> fee_estimator_input;
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
     std::unique_ptr<CBlockPolicyEstimator> fee_estimator;
     std::unique_ptr<PeerManager> peerman;
     std::unique_ptr<ChainstateManager> chainman;

@@ -213,7 +213,12 @@ BITCOIN_CORE_H = \
   outputtype.h \
   policy/feerate.h \
   policy/fees.h \
+<<<<<<< HEAD
   policy/fees_args.h \
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+=======
+  policy/fees_input.h \
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
   policy/packages.h \
   policy/policy.h \
   policy/rbf.h \
@@ -395,7 +400,12 @@ libbitcoin_node_a_SOURCES = \
   node/validation_cache_args.cpp \
   noui.cpp \
   policy/fees.cpp \
+<<<<<<< HEAD
   policy/fees_args.cpp \
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+=======
+  policy/fees_input.cpp \
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
   policy/packages.cpp \
   policy/rbf.cpp \
   policy/settings.cpp \

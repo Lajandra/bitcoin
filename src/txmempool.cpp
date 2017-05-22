@@ -10,7 +10,7 @@
 #include <consensus/consensus.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
-#include <policy/fees.h>
+#include <policy/fees_input.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <reverse_iterator.h>
@@ -453,6 +453,7 @@ void CTxMemPoolEntry::UpdateAncestorState(int64_t modifySize, CAmount modifyFee,
     assert(int(nSigOpCostWithAncestors) >= 0);
 }
 
+<<<<<<< HEAD
 CTxMemPool::CTxMemPool(const Options& opts)
     : m_check_ratio{opts.check_ratio},
       minerPolicyEstimator{opts.estimator},
@@ -466,6 +467,13 @@ CTxMemPool::CTxMemPool(const Options& opts)
       m_require_standard{opts.require_standard},
       m_full_rbf{opts.full_rbf},
       m_limits{opts.limits}
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+CTxMemPool::CTxMemPool(CBlockPolicyEstimator* estimator, int check_ratio)
+    : m_check_ratio(check_ratio), minerPolicyEstimator(estimator)
+=======
+CTxMemPool::CTxMemPool(FeeEstInput* estimator, int check_ratio)
+    : m_check_ratio(check_ratio), minerPolicyEstimator(estimator)
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
 {
     _clear(); //lock free clear
 }
@@ -531,7 +539,8 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
     totalTxSize += entry.GetTxSize();
     m_total_fee += entry.GetFee();
     if (minerPolicyEstimator) {
-        minerPolicyEstimator->processTransaction(entry, validFeeEstimate);
+        minerPolicyEstimator->processTx(
+            entry.GetTx().GetHash(), entry.GetHeight(), entry.GetFee(), entry.GetTxSize(), validFeeEstimate);
     }
 
     vTxHashes.emplace_back(tx.GetWitnessHash(), newit);
@@ -679,17 +688,18 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight)
 {
     AssertLockHeld(cs);
-    std::vector<const CTxMemPoolEntry*> entries;
-    for (const auto& tx : vtx)
-    {
-        uint256 hash = tx->GetHash();
-
-        indexed_transaction_set::iterator i = mapTx.find(hash);
-        if (i != mapTx.end())
-            entries.push_back(&*i);
-    }
     // Before the txs in the new block have been removed from the mempool, update policy estimates
-    if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
+    if (minerPolicyEstimator) {
+        minerPolicyEstimator->processBlock(nBlockHeight, [&](const AddTxFn& add_tx) EXCLUSIVE_LOCKS_REQUIRED(cs) {
+            for (const auto& tx : vtx) {
+                const auto& hash = tx->GetHash();
+                indexed_transaction_set::iterator i = mapTx.find(hash);
+                if (i != mapTx.end()) {
+                    add_tx(i->GetTx().GetHash(), i->GetHeight(), i->GetFee(), i->GetTxSize());
+                }
+            }
+        });
+    }
     for (const auto& tx : vtx)
     {
         txiter it = mapTx.find(tx->GetHash());

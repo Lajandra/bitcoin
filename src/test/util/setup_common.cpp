@@ -26,7 +26,12 @@
 #include <node/validation_cache_args.h>
 #include <noui.h>
 #include <policy/fees.h>
+<<<<<<< HEAD
 #include <policy/fees_args.h>
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+=======
+#include <policy/fees_input.h>
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
 #include <pow.h>
 #include <rpc/blockchain.h>
 #include <rpc/register.h>
@@ -185,8 +190,17 @@ ChainTestingSetup::ChainTestingSetup(const std::string& chainName, const std::ve
     m_node.scheduler->m_service_thread = std::thread(util::TraceThread, "scheduler", [&] { m_node.scheduler->serviceQueue(); });
     GetMainSignals().RegisterBackgroundSignalScheduler(*m_node.scheduler);
 
+<<<<<<< HEAD
     m_node.fee_estimator = std::make_unique<CBlockPolicyEstimator>(FeeestPath(*m_node.args));
     m_node.mempool = std::make_unique<CTxMemPool>(MemPoolOptionsForTest(m_node));
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+    m_node.fee_estimator = std::make_unique<CBlockPolicyEstimator>();
+    m_node.mempool = std::make_unique<CTxMemPool>(m_node.fee_estimator.get(), 1);
+=======
+    m_node.fee_estimator = std::make_unique<CBlockPolicyEstimator>();
+    m_node.fee_estimator_input = std::make_unique<FeeEstInput>(*m_node.fee_estimator);
+    m_node.mempool = std::make_unique<CTxMemPool>(m_node.fee_estimator_input.get(), 1);
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
 
     m_cache_sizes = CalculateCacheSizes(m_args);
 

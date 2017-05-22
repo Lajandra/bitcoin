@@ -47,6 +47,13 @@ class CChainState;
 class CBlockTreeDB;
 class CTxMemPool;
 class ChainstateManager;
+<<<<<<< HEAD
+||||||| parent of f72af48121a (Add -estlog option for saving live fee estimation data)
+class SnapshotMetadata;
+=======
+class FeeEstInput;
+class SnapshotMetadata;
+>>>>>>> f72af48121a (Add -estlog option for saving live fee estimation data)
 struct ChainTxData;
 struct DisconnectedBlockTransactions;
 struct PrecomputedTransactionData;
