@@ -29,9 +29,16 @@ struct CNodeStateStats {
     int m_starting_height = -1;
     std::chrono::microseconds m_ping_wait;
     std::vector<int> vHeightInFlight;
+<<<<<<< HEAD
     uint64_t m_addr_processed = 0;
     uint64_t m_addr_rate_limited = 0;
     bool m_addr_relay_enabled{false};
+||||||| parent of 4be61eac86a (Add capnp wrapper for Node interface)
+=======
+    // Note: If you add fields to this struct, you should also consider updating
+    // the getpeerinfo RPC (in rpc/net.cpp), and the IPC serialization code (in
+    // ipc/capnp/node.cpp and ipc/capnp/node.capnp).
+>>>>>>> 4be61eac86a (Add capnp wrapper for Node interface)
 };
 
 class PeerManager : public CValidationInterface, public NetEventsInterface
