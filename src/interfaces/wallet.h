@@ -356,8 +356,18 @@ struct WalletAddress
     wallet::AddressPurpose purpose;
     std::string name;
 
+<<<<<<< HEAD
     WalletAddress(CTxDestination dest, wallet::isminetype is_mine, wallet::AddressPurpose purpose, std::string name)
         : dest(std::move(dest)), is_mine(is_mine), purpose(std::move(purpose)), name(std::move(name))
+||||||| parent of 9423aeab51a (Add capnp wrapper for Wallet interface)
+    WalletAddress(CTxDestination dest, wallet::isminetype is_mine, std::string name, std::string purpose)
+        : dest(std::move(dest)), is_mine(is_mine), name(std::move(name)), purpose(std::move(purpose))
+=======
+    WalletAddress() = default;
+
+    WalletAddress(CTxDestination dest, wallet::isminetype is_mine, std::string name, std::string purpose)
+        : dest(std::move(dest)), is_mine(is_mine), name(std::move(name)), purpose(std::move(purpose))
+>>>>>>> 9423aeab51a (Add capnp wrapper for Wallet interface)
     {
     }
 };
