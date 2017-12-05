@@ -34,7 +34,14 @@ struct CNodeStateStats {
     uint64_t m_addr_processed = 0;
     uint64_t m_addr_rate_limited = 0;
     bool m_addr_relay_enabled{false};
+<<<<<<< HEAD
     ServiceFlags their_services;
+||||||| parent of a5116a57a99 (Add capnp wrapper for Node interface)
+=======
+    // Note: If you add fields to this struct, you should also consider updating
+    // the getpeerinfo RPC (in rpc/net.cpp), and the IPC serialization code (in
+    // ipc/capnp/node.cpp and ipc/capnp/node.capnp).
+>>>>>>> a5116a57a99 (Add capnp wrapper for Node interface)
 };
 
 class PeerManager : public CValidationInterface, public NetEventsInterface
