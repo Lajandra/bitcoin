@@ -355,7 +355,15 @@ struct WalletAddress
     std::string name;
     std::string purpose;
 
+<<<<<<< HEAD
     WalletAddress(CTxDestination dest, wallet::isminetype is_mine, std::string name, std::string purpose)
+||||||| parent of 4968f6de094 (Add capnp wrapper for Wallet interface)
+    WalletAddress(CTxDestination dest, isminetype is_mine, std::string name, std::string purpose)
+=======
+    WalletAddress() = default;
+
+    WalletAddress(CTxDestination dest, isminetype is_mine, std::string name, std::string purpose)
+>>>>>>> 4968f6de094 (Add capnp wrapper for Wallet interface)
         : dest(std::move(dest)), is_mine(is_mine), name(std::move(name)), purpose(std::move(purpose))
     {
     }
