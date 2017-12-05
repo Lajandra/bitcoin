@@ -1238,7 +1238,40 @@ class TaprootTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
+<<<<<<< HEAD
         self.extra_args = [["-par=1"]]
+||||||| parent of 373054209a7 (Increase feature_block.py and feature_taproot.py timeouts)
+        # Node 0 has Taproot inactive, Node 1 active.
+        self.extra_args = [["-par=1"], ["-par=1"]]
+        if self.options.previous_release:
+            self.wallet_names = [None, self.default_wallet_name]
+        else:
+            self.extra_args[0].append("-vbparams=taproot:1:1")
+
+    def setup_nodes(self):
+        self.add_nodes(self.num_nodes, self.extra_args, versions=[
+            200100 if self.options.previous_release else None,
+            None,
+        ])
+        self.start_nodes()
+        self.import_deterministic_coinbase_privkeys()
+=======
+        # Node 0 has Taproot inactive, Node 1 active.
+        self.extra_args = [["-par=1"], ["-par=1"]]
+        self.rpc_timeout = 120
+        if self.options.previous_release:
+            self.wallet_names = [None, self.default_wallet_name]
+        else:
+            self.extra_args[0].append("-vbparams=taproot:1:1")
+
+    def setup_nodes(self):
+        self.add_nodes(self.num_nodes, self.extra_args, versions=[
+            200100 if self.options.previous_release else None,
+            None,
+        ])
+        self.start_nodes()
+        self.import_deterministic_coinbase_privkeys()
+>>>>>>> 373054209a7 (Increase feature_block.py and feature_taproot.py timeouts)
 
     def block_submit(self, node, txs, msg, err_msg, cb_pubkey=None, fees=0, sigops_weight=0, witness=False, accept=False):
 
