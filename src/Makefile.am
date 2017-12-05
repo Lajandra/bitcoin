@@ -343,9 +343,15 @@ obj/build.h: FORCE
 libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ||||||| parent of c9d74af3a29 (Add capnp wrapper for Chain interface)
 ipc/capnp/libbitcoin_ipc_a-ipc.$(OBJEXT): $(libbitcoin_ipc_mpgen_input:=.h)
 =======
+||||||| parent of 61c542ad91f (doc: Multiprocess misc doc and comment updates)
+=======
+# Explicitly list dependencies on generated headers as described
+# https://www.gnu.org/software/automake/manual/html_node/Built-Sources-Example.html#Recording-Dependencies-manually
+>>>>>>> 61c542ad91f (doc: Multiprocess misc doc and comment updates)
 ipc/capnp/libbitcoin_ipc_a-ipc.$(OBJEXT): $(libbitcoin_ipc_mpgen_input:=.h)
 ipc/capnp/libbitcoin_ipc_a-chain.$(OBJEXT): $(libbitcoin_ipc_mpgen_input:=.h)
 >>>>>>> c9d74af3a29 (Add capnp wrapper for Chain interface)
