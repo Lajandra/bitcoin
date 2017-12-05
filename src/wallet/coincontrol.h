@@ -58,8 +58,15 @@ public:
     int m_min_depth = DEFAULT_MIN_DEPTH;
     //! Maximum chain depth value for coin availability
     int m_max_depth = DEFAULT_MAX_DEPTH;
+<<<<<<< HEAD
     //! SigningProvider that has pubkeys and scripts to do spend size estimation for external inputs
     FlatSigningProvider m_external_provider;
+||||||| parent of 773400b274e (Add capnp wrapper for Wallet interface)
+=======
+    // Note: If you add fields to this struct, you should also update the IPC
+    // serialization code (in ipc/capnp/wallet-types.cpp and
+    // ipc/capnp/wallet.capnp).
+>>>>>>> 773400b274e (Add capnp wrapper for Wallet interface)
 
     CCoinControl();
 
