@@ -50,10 +50,18 @@ public:
     }
     std::unique_ptr<interfaces::Node> makeNode() override { return interfaces::MakeNode(m_node); }
     std::unique_ptr<interfaces::Chain> makeChain() override { return interfaces::MakeChain(m_node); }
+<<<<<<< HEAD
     std::unique_ptr<interfaces::WalletLoader> makeWalletLoader(interfaces::Chain& chain) override
     {
         return MakeWalletLoader(chain, *Assert(m_node.args));
     }
+||||||| parent of 5ccc7023bd3 (Make bitcoin-node spawn a bitcoin-wallet process)
+    std::unique_ptr<interfaces::WalletClient> makeWalletClient(interfaces::Chain& chain) override
+    {
+        return MakeWalletClient(chain, *Assert(m_node.args));
+    }
+=======
+>>>>>>> 5ccc7023bd3 (Make bitcoin-node spawn a bitcoin-wallet process)
     std::unique_ptr<interfaces::Echo> makeEcho() override { return interfaces::MakeEcho(); }
     interfaces::Ipc* ipc() override { return m_ipc.get(); }
     NodeContext& m_node;
