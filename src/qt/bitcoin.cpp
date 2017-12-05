@@ -41,6 +41,35 @@
 #include <qt/walletmodel.h>
 #endif // ENABLE_WALLET
 
+<<<<<<< HEAD
+||||||| parent of cf7115465fe (Add new bitcoin-gui, bitcoin-qt, bitcoin-wallet init implementations)
+#include <init.h>
+#include <interfaces/handler.h>
+#include <interfaces/init.h>
+#include <interfaces/node.h>
+#include <node/context.h>
+#include <node/ui_interface.h>
+#include <noui.h>
+#include <uint256.h>
+#include <util/system.h>
+#include <util/threadnames.h>
+#include <util/translation.h>
+#include <validation.h>
+
+=======
+#include <init.h>
+#include <interfaces/handler.h>
+#include <interfaces/init.h>
+#include <interfaces/node.h>
+#include <node/ui_interface.h>
+#include <noui.h>
+#include <uint256.h>
+#include <util/system.h>
+#include <util/threadnames.h>
+#include <util/translation.h>
+#include <validation.h>
+
+>>>>>>> cf7115465fe (Add new bitcoin-gui, bitcoin-qt, bitcoin-wallet init implementations)
 #include <boost/signals2/connection.hpp>
 #include <memory>
 
@@ -462,9 +491,7 @@ int GuiMain(int argc, char* argv[])
     std::tie(argc, argv) = winArgs.get();
 #endif
 
-    NodeContext node_context;
-    int unused_exit_status;
-    std::unique_ptr<interfaces::Init> init = interfaces::MakeNodeInit(node_context, argc, argv, unused_exit_status);
+    std::unique_ptr<interfaces::Init> init = interfaces::MakeGuiInit(argc, argv);
 
     SetupEnvironment();
     util::ThreadSetInternalName("main");
