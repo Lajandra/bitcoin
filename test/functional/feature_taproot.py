@@ -1210,6 +1210,7 @@ class TaprootTest(BitcoinTestFramework):
         self.num_nodes = 2
         self.setup_clean_chain = True
         # Node 0 has Taproot inactive, Node 1 active.
+<<<<<<< HEAD
         self.extra_args = [["-par=1"], ["-par=1"]]
         if self.options.previous_release:
             self.wallet_names = [None, self.default_wallet_name]
@@ -1223,6 +1224,12 @@ class TaprootTest(BitcoinTestFramework):
         ])
         self.start_nodes()
         self.import_deterministic_coinbase_privkeys()
+||||||| parent of 666182b94dc (Increase feature_block.py and feature_taproot.py timeouts)
+        self.extra_args = [["-par=1", "-vbparams=taproot:1:1"], ["-par=1"]]
+=======
+        self.extra_args = [["-par=1", "-vbparams=taproot:1:1"], ["-par=1"]]
+        self.rpc_timeout = 120
+>>>>>>> 666182b94dc (Increase feature_block.py and feature_taproot.py timeouts)
 
     def block_submit(self, node, txs, msg, err_msg, cb_pubkey=None, fees=0, sigops_weight=0, witness=False, accept=False):
 
