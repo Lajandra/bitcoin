@@ -34,7 +34,14 @@ class BitcoinNodeInit : public interfaces::Init
 {
 public:
     BitcoinNodeInit(NodeContext& node, const char* arg0)
+<<<<<<< HEAD
         : m_node(node), m_ipc(interfaces::MakeIpc(EXE_NAME, "", arg0, *this))
+||||||| parent of 977f384064f (multiprocess: Add -ipcconnect and -ipcbind options)
+        : m_node(node),
+          m_ipc(interfaces::MakeIpc(EXE_NAME, arg0, *this))
+=======
+        : m_node(node), m_ipc(interfaces::MakeIpc(EXE_NAME, arg0, *this))
+>>>>>>> 977f384064f (multiprocess: Add -ipcconnect and -ipcbind options)
     {
         m_node.args = &gArgs;
         m_node.init = this;
@@ -52,6 +59,7 @@ public:
     std::unique_ptr<interfaces::Chain> makeChain() override { return interfaces::MakeChain(m_node); }
     std::unique_ptr<interfaces::Echo> makeEcho() override { return interfaces::MakeEcho(); }
     interfaces::Ipc* ipc() override { return m_ipc.get(); }
+    bool canListenIpc() override { return true; }
     NodeContext& m_node;
     std::unique_ptr<interfaces::Ipc> m_ipc;
 };
