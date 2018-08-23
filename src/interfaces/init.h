@@ -30,11 +30,27 @@ class Init
 {
 public:
     virtual ~Init() = default;
+<<<<<<< HEAD
     virtual std::unique_ptr<Node> makeNode() { return nullptr; }
     virtual std::unique_ptr<Chain> makeChain() { return nullptr; }
     virtual std::unique_ptr<WalletLoader> makeWalletLoader(Chain& chain) { return nullptr; }
     virtual std::unique_ptr<Echo> makeEcho() { return nullptr; }
     virtual Ipc* ipc() { return nullptr; }
+||||||| parent of 940c5166532 (multiprocess: Add -ipcconnect and -ipcbind options)
+    virtual std::unique_ptr<Node> makeNode();
+    virtual std::unique_ptr<Chain> makeChain();
+    virtual std::unique_ptr<WalletLoader> makeWalletLoader(Chain& chain);
+    virtual std::unique_ptr<Echo> makeEcho();
+    virtual Ipc* ipc();
+=======
+    virtual std::unique_ptr<Node> makeNode();
+    virtual std::unique_ptr<Chain> makeChain();
+    virtual std::unique_ptr<WalletLoader> makeWalletLoader(Chain& chain);
+    virtual std::unique_ptr<Echo> makeEcho();
+    virtual Ipc* ipc();
+    virtual bool canConnectIpc();
+    virtual bool canListenIpc();
+>>>>>>> 940c5166532 (multiprocess: Add -ipcconnect and -ipcbind options)
 };
 
 //! Return implementation of Init interface for the node process. If the argv
