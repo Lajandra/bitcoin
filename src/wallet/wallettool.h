@@ -9,9 +9,13 @@
 
 class ArgsManager;
 
+namespace interfaces {
+class Chain;
+} // namespace interfaces
+
 namespace WalletTool {
 
-bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command);
+bool ExecuteWalletToolFunc(const ArgsManager& args, interfaces::Chain* chain, const std::string& command);
 
 } // namespace WalletTool
 
