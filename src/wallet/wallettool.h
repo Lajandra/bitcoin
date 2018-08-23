@@ -9,10 +9,18 @@
 
 class ArgsManager;
 
+<<<<<<< HEAD
 namespace wallet {
+||||||| parent of 40c88d90c0b (multiprocess: Add -ipcconnect and -ipcbind options)
+=======
+namespace interfaces {
+class Chain;
+} // namespace interfaces
+
+>>>>>>> 40c88d90c0b (multiprocess: Add -ipcconnect and -ipcbind options)
 namespace WalletTool {
 
-bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command);
+bool ExecuteWalletToolFunc(const ArgsManager& args, interfaces::Chain* chain, const std::string& command);
 
 } // namespace WalletTool
 } // namespace wallet

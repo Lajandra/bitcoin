@@ -51,7 +51,14 @@ public:
     std::unique_ptr<interfaces::Chain> makeChain() override { return interfaces::MakeChain(m_node); }
     std::unique_ptr<interfaces::Echo> makeEcho() override { return interfaces::MakeEcho(); }
     interfaces::Ipc* ipc() override { return m_ipc.get(); }
+<<<<<<< HEAD
     node::NodeContext& m_node;
+||||||| parent of 40c88d90c0b (multiprocess: Add -ipcconnect and -ipcbind options)
+    NodeContext& m_node;
+=======
+    bool canListenIpc() override { return true; }
+    NodeContext& m_node;
+>>>>>>> 40c88d90c0b (multiprocess: Add -ipcconnect and -ipcbind options)
     std::unique_ptr<interfaces::Ipc> m_ipc;
 };
 } // namespace
