@@ -9,9 +9,21 @@
 
 class ArgsManager;
 
+namespace interfaces {
+class Chain;
+} // namespace interfaces
+
 namespace WalletTool {
 
+<<<<<<< HEAD
 bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command);
+||||||| parent of dd5bbe8cdcf (multiprocess: Add -ipcconnect and -ipcbind options)
+void WalletShowInfo(CWallet* wallet_instance);
+bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command);
+=======
+void WalletShowInfo(CWallet* wallet_instance);
+bool ExecuteWalletToolFunc(const ArgsManager& args, interfaces::Chain* chain, const std::string& command);
+>>>>>>> dd5bbe8cdcf (multiprocess: Add -ipcconnect and -ipcbind options)
 
 } // namespace WalletTool
 
