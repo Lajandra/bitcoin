@@ -97,6 +97,8 @@ void OptionsModel::Init(bool resetSettings)
     if (node().isSettingIgnored("par")) addOverriddenOption("-par");
     if (node().isSettingIgnored("spendzeroconfchange")) addOverriddenOption("-spendzeroconfchange");
     if (node().isSettingIgnored("signer")) addOverriddenOption("-signer");
+    if (node().isSettingIgnored("upnp")) addOverriddenOption("-upnp");
+    if (node().isSettingIgnored("natpmp")) addOverriddenOption("-natpmp");
 
     // If setting doesn't exist create it with defaults.
     //
@@ -121,18 +123,6 @@ void OptionsModel::Init(bool resetSettings)
 #endif
 
     // Network
-    if (!settings.contains("fUseUPnP"))
-        settings.setValue("fUseUPnP", DEFAULT_UPNP);
-    if (!gArgs.SoftSetBoolArg("-upnp", settings.value("fUseUPnP").toBool()))
-        addOverriddenOption("-upnp");
-
-    if (!settings.contains("fUseNatpmp")) {
-        settings.setValue("fUseNatpmp", DEFAULT_NATPMP);
-    }
-    if (!gArgs.SoftSetBoolArg("-natpmp", settings.value("fUseNatpmp").toBool())) {
-        addOverriddenOption("-natpmp");
-    }
-
     if (!settings.contains("fListen"))
         settings.setValue("fListen", DEFAULT_LISTEN);
     const bool listen{settings.value("fListen").toBool()};
@@ -342,13 +332,13 @@ QVariant OptionsModel::getOption(OptionID option) const
         return fMinimizeToTray;
     case MapPortUPnP:
 #ifdef USE_UPNP
-        return settings.value("fUseUPnP");
+        return SettingToBool(node().getPersistentSetting("upnp"), DEFAULT_UPNP);
 #else
         return false;
 #endif // USE_UPNP
     case MapPortNatpmp:
 #ifdef USE_NATPMP
-        return settings.value("fUseNatpmp");
+        return SettingToBool(node().getPersistentSetting("natpmp"), DEFAULT_NATPMP);
 #else
         return false;
 #endif // USE_NATPMP
@@ -429,10 +419,16 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         settings.setValue("fMinimizeToTray", fMinimizeToTray);
         break;
     case MapPortUPnP: // core option - can be changed on-the-fly
-        settings.setValue("fUseUPnP", value.toBool());
+        if (changed()) {
+            node().updateSetting("upnp", value.toBool());
+            node().mapPort(value.toBool(), getOption(MapPortNatpmp).toBool());
+        }
         break;
     case MapPortNatpmp: // core option - can be changed on-the-fly
-        settings.setValue("fUseNatpmp", value.toBool());
+        if (changed()) {
+            node().updateSetting("natpmp", value.toBool());
+            node().mapPort(getOption(MapPortUPnP).toBool(), value.toBool());
+        }
         break;
     case MinimizeOnClose:
         fMinimizeOnClose = value.toBool();
@@ -652,4 +648,6 @@ void OptionsModel::checkAndMigrate()
     migrate_setting(SpendZeroConfChange, "bSpendZeroConfChange", "spendzeroconfchange");
     migrate_setting(ExternalSignerPath, "external_signer_path", "signer");
 #endif
+    migrate_setting(MapPortUPnP, "fUseUPnP", "upnp");
+    migrate_setting(MapPortNatpmp, "fUseNatpmp", "natpmp");
 }
