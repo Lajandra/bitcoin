@@ -115,6 +115,7 @@ void OptionsModel::Init(bool resetSettings)
     // These are shared with the core or have a command-line parameter
     // and we want command-line parameters to overwrite the GUI settings.
     if (node().isSettingIgnored("dbcache")) addOverriddenOption("-dbcache");
+    if (node().isSettingIgnored("par")) addOverriddenOption("-par");
 
     // If setting doesn't exist create it with defaults.
     //
@@ -127,12 +128,6 @@ void OptionsModel::Init(bool resetSettings)
     if (!settings.contains("nPruneSize"))
         settings.setValue("nPruneSize", DEFAULT_PRUNE_TARGET_GB);
     SetPruneEnabled(settings.value("bPrune").toBool());
-
-    if (!settings.contains("nThreadsScriptVerif"))
-        settings.setValue("nThreadsScriptVerif", DEFAULT_SCRIPTCHECK_THREADS);
-    if (!gArgs.SoftSetArg("-par", settings.value("nThreadsScriptVerif").toString().toStdString()))
-        addOverriddenOption("-par");
-
     if (!settings.contains("strDataDir"))
         settings.setValue("strDataDir", GUIUtil::getDefaultDataDirectory());
 
@@ -434,7 +429,7 @@ QVariant OptionsModel::getOption(OptionID option) const
     case DatabaseCache:
         return ToQVariant(node().getPersistentSetting("dbcache"), (qint64)nDefaultDbCache);
     case ThreadsScriptVerif:
-        return settings.value("nThreadsScriptVerif");
+        return ToQVariant(node().getPersistentSetting("par"), DEFAULT_SCRIPTCHECK_THREADS);
     case Listen:
         return settings.value("fListen");
     case Server:
@@ -594,8 +589,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         }
         break;
     case ThreadsScriptVerif:
-        if (settings.value("nThreadsScriptVerif") != value) {
-            settings.setValue("nThreadsScriptVerif", value);
+        if (changed()) {
+            node().updateSetting("par", ToSetting(value, QVariant::Int));
             setRestartRequired(true);
         }
         break;
@@ -683,4 +678,5 @@ void OptionsModel::checkAndMigrate()
     };
 
     migrate_setting(DatabaseCache, "nDatabaseCache", "dbcache");
+    migrate_setting(ThreadsScriptVerif, "nThreadsScriptVerif", "par");
 }
