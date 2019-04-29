@@ -56,6 +56,25 @@ static QVariant ToQVariant(const util::SettingsValue& value, const QVariant& fal
     return QString::fromStdString(value.get_str());
 }
 
+//! Convert bitcoin setting to QString. The setting must already be a string, or
+//! it must be negated or unset.
+//! @throws std::runtime_error if value has non-string type like integer, bool,
+//! array, or object.
+static QString ToQString(const util::SettingsValue& value, const QString& fallback = {})
+{
+    if (value.isNull()) return fallback; // If string setting is unset, fall back to default.
+    if (value.isFalse()) return "";      // If string setting is negated, treat it like "".
+    return QString::fromStdString(value.get_str());
+}
+
+struct ProxySetting {
+    bool is_set;
+    QString ip;
+    QString port;
+};
+static ProxySetting ParseProxyString(const QString& proxy);
+static QString ProxyString(bool is_set, QString ip, QString port);
+
 OptionsModel::OptionsModel(interfaces::Node& node, QObject *parent, bool resetSettings) :
     QAbstractListModel(parent), m_node(&node)
 {
@@ -72,6 +91,14 @@ void OptionsModel::Init(bool resetSettings)
 {
     if (resetSettings)
         Reset();
+
+    // Initialize display settings from stored settings.
+    ProxySetting proxy = ParseProxyString(ToQString(node().getPersistentSetting("proxy")));
+    m_proxy_ip = proxy.ip;
+    m_proxy_port = proxy.port;
+    ProxySetting onion = ParseProxyString(ToQString(node().getPersistentSetting("onion")));
+    m_onion_ip = onion.ip;
+    m_onion_port = onion.port;
 
     checkAndMigrate();
 
@@ -125,6 +152,8 @@ void OptionsModel::Init(bool resetSettings)
     if (node().isSettingIgnored("natpmp")) addOverriddenOption("-natpmp");
     if (node().isSettingIgnored("listen")) addOverriddenOption("-listen");
     if (node().isSettingIgnored("server")) addOverriddenOption("-server");
+    if (node().isSettingIgnored("proxy")) addOverriddenOption("-proxy");
+    if (node().isSettingIgnored("onion")) addOverriddenOption("-onion");
 
     // If setting doesn't exist create it with defaults.
     //
@@ -147,28 +176,6 @@ void OptionsModel::Init(bool resetSettings)
     }
     m_sub_fee_from_amount = settings.value("SubFeeFromAmount", false).toBool();
 #endif
-
-    // Network
-
-    if (!settings.contains("fUseProxy"))
-        settings.setValue("fUseProxy", false);
-    if (!settings.contains("addrProxy"))
-        settings.setValue("addrProxy", GetDefaultProxyAddress());
-    // Only try to set -proxy, if user has enabled fUseProxy
-    if ((settings.value("fUseProxy").toBool() && !gArgs.SoftSetArg("-proxy", settings.value("addrProxy").toString().toStdString())))
-        addOverriddenOption("-proxy");
-    else if(!settings.value("fUseProxy").toBool() && !gArgs.GetArg("-proxy", "").empty())
-        addOverriddenOption("-proxy");
-
-    if (!settings.contains("fUseSeparateProxyTor"))
-        settings.setValue("fUseSeparateProxyTor", false);
-    if (!settings.contains("addrSeparateProxyTor"))
-        settings.setValue("addrSeparateProxyTor", GetDefaultProxyAddress());
-    // Only try to set -onion, if user has enabled fUseSeparateProxyTor
-    if ((settings.value("fUseSeparateProxyTor").toBool() && !gArgs.SoftSetArg("-onion", settings.value("addrSeparateProxyTor").toString().toStdString())))
-        addOverriddenOption("-onion");
-    else if(!settings.value("fUseSeparateProxyTor").toBool() && !gArgs.GetArg("-onion", "").empty())
-        addOverriddenOption("-onion");
 
     // Display
     if (!settings.contains("language"))
@@ -234,21 +241,15 @@ int OptionsModel::rowCount(const QModelIndex & parent) const
     return OptionIDRowCount;
 }
 
-struct ProxySetting {
-    bool is_set;
-    QString ip;
-    QString port;
-};
-
-static ProxySetting GetProxySetting(QSettings &settings, const QString &name)
+static ProxySetting ParseProxyString(const QString& proxy)
 {
     static const ProxySetting default_val = {false, DEFAULT_GUI_PROXY_HOST, QString("%1").arg(DEFAULT_GUI_PROXY_PORT)};
     // Handle the case that the setting is not set at all
-    if (!settings.contains(name)) {
+    if (proxy.isEmpty()) {
         return default_val;
     }
     // contains IP at index 0 and port at index 1
-    QStringList ip_port = GUIUtil::SplitSkipEmptyParts(settings.value(name).toString(), ":");
+    QStringList ip_port = GUIUtil::SplitSkipEmptyParts(proxy, ":");
     if (ip_port.size() == 2) {
         return {true, ip_port.at(0), ip_port.at(1)};
     } else { // Invalid: return default
@@ -256,9 +257,9 @@ static ProxySetting GetProxySetting(QSettings &settings, const QString &name)
     }
 }
 
-static void SetProxySetting(QSettings &settings, const QString &name, const ProxySetting &ip_port)
+static QString ProxyString(bool is_set, QString ip, QString port)
 {
-    settings.setValue(name, QString{ip_port.ip + QLatin1Char(':') + ip_port.port});
+    return is_set ? ip + ":" + port : QString{""};
 }
 
 static const QString GetDefaultProxyAddress()
@@ -342,19 +343,19 @@ QVariant OptionsModel::getOption(OptionID option) const
 
     // default proxy
     case ProxyUse:
-        return settings.value("fUseProxy", false);
+        return ParseProxyString(ToQString(node().getPersistentSetting("proxy"))).is_set;
     case ProxyIP:
-        return GetProxySetting(settings, "addrProxy").ip;
+        return m_proxy_ip;
     case ProxyPort:
-        return GetProxySetting(settings, "addrProxy").port;
+        return m_proxy_port;
 
     // separate Tor proxy
     case ProxyUseTor:
-        return settings.value("fUseSeparateProxyTor", false);
+        return ParseProxyString(ToQString(node().getPersistentSetting("onion"))).is_set;
     case ProxyIPTor:
-        return GetProxySetting(settings, "addrSeparateProxyTor").ip;
+        return m_onion_ip;
     case ProxyPortTor:
-        return GetProxySetting(settings, "addrSeparateProxyTor").port;
+        return m_onion_port;
 
 #ifdef ENABLE_WALLET
     case SpendZeroConfChange:
@@ -432,55 +433,55 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
 
     // default proxy
     case ProxyUse:
-        if (settings.value("fUseProxy") != value) {
-            settings.setValue("fUseProxy", value.toBool());
+        if (changed()) {
+            node().updateSetting("proxy", ProxyString(value.toBool(), m_proxy_ip, m_proxy_port).toStdString());
             setRestartRequired(true);
         }
         break;
-    case ProxyIP: {
-        auto ip_port = GetProxySetting(settings, "addrProxy");
-        if (!ip_port.is_set || ip_port.ip != value.toString()) {
-            ip_port.ip = value.toString();
-            SetProxySetting(settings, "addrProxy", ip_port);
-            setRestartRequired(true);
+    case ProxyIP:
+        if (changed()) {
+            m_proxy_ip = value.toString();
+            if (getOption(ProxyUse).toBool()) {
+                node().updateSetting("proxy", ProxyString(true, m_proxy_ip, m_proxy_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
-    case ProxyPort: {
-        auto ip_port = GetProxySetting(settings, "addrProxy");
-        if (!ip_port.is_set || ip_port.port != value.toString()) {
-            ip_port.port = value.toString();
-            SetProxySetting(settings, "addrProxy", ip_port);
-            setRestartRequired(true);
+        break;
+    case ProxyPort:
+        if (changed()) {
+            m_proxy_port = value.toString();
+            if (getOption(ProxyUse).toBool()) {
+                node().updateSetting("proxy", ProxyString(true, m_proxy_ip, m_proxy_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
+        break;
 
     // separate Tor proxy
     case ProxyUseTor:
-        if (settings.value("fUseSeparateProxyTor") != value) {
-            settings.setValue("fUseSeparateProxyTor", value.toBool());
+        if (changed()) {
+            node().updateSetting("onion", ProxyString(value.toBool(), m_onion_ip, m_onion_port).toStdString());
             setRestartRequired(true);
         }
         break;
-    case ProxyIPTor: {
-        auto ip_port = GetProxySetting(settings, "addrSeparateProxyTor");
-        if (!ip_port.is_set || ip_port.ip != value.toString()) {
-            ip_port.ip = value.toString();
-            SetProxySetting(settings, "addrSeparateProxyTor", ip_port);
-            setRestartRequired(true);
+    case ProxyIPTor:
+        if (changed()) {
+            m_onion_ip = value.toString();
+            if (getOption(ProxyUseTor).toBool()) {
+                node().updateSetting("onion", ProxyString(true, m_onion_ip, m_onion_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
-    case ProxyPortTor: {
-        auto ip_port = GetProxySetting(settings, "addrSeparateProxyTor");
-        if (!ip_port.is_set || ip_port.port != value.toString()) {
-            ip_port.port = value.toString();
-            SetProxySetting(settings, "addrSeparateProxyTor", ip_port);
-            setRestartRequired(true);
+        break;
+    case ProxyPortTor:
+        if (changed()) {
+            m_onion_port = value.toString();
+            if (getOption(ProxyUseTor).toBool()) {
+                node().updateSetting("onion", ProxyString(true, m_onion_ip, m_onion_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
+        break;
 
 #ifdef ENABLE_WALLET
     case SpendZeroConfChange:
@@ -632,7 +633,17 @@ void OptionsModel::checkAndMigrate()
         if (!settings.contains(qt_name)) return;
         QVariant value = settings.value(qt_name);
         if (node().getPersistentSetting(name).isNull()) {
-            setOption(option, value);
+            if (option == ProxyIP) {
+                ProxySetting parsed = ParseProxyString(value.toString());
+                setOption(ProxyIP, parsed.ip);
+                setOption(ProxyPort, parsed.port);
+            } else if (option == ProxyIPTor) {
+                ProxySetting parsed = ParseProxyString(value.toString());
+                setOption(ProxyIPTor, parsed.ip);
+                setOption(ProxyPortTor, parsed.port);
+            } else {
+                setOption(option, value);
+            }
         }
         settings.remove(qt_name);
     };
@@ -647,6 +658,10 @@ void OptionsModel::checkAndMigrate()
     migrate_setting(MapPortNatpmp, "fUseNatpmp", "natpmp");
     migrate_setting(Listen, "fListen", "listen");
     migrate_setting(Server, "server", "server");
+    migrate_setting(ProxyIP, "addrProxy", "proxy");
+    migrate_setting(ProxyUse, "fUseProxy", "proxy");
+    migrate_setting(ProxyIPTor, "addrSeparateProxyTor", "onion");
+    migrate_setting(ProxyUseTor, "fUseSeparateProxyTor", "onion");
 
     // In case migrating QSettings caused any settings value to change, rerun
     // parameter interaction code to update other settings. This is particularly
