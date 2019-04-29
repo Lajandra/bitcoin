@@ -25,9 +25,35 @@
 #include <QSettings>
 #include <QStringList>
 
+#include <univalue.h>
+
 const char *DEFAULT_GUI_PROXY_HOST = "127.0.0.1";
 
 static const QString GetDefaultProxyAddress();
+
+//! Convert QVariant value to bitcoin setting of specified type. Type is
+//! explicitly required to make sure values written to settings.json are always
+//! written with the right type, regardless of how the options dialog code sets
+//! the QVariant.
+static util::SettingsValue ToSetting(const QVariant& variant, QVariant::Type type)
+{
+    assert(type == QVariant::Bool || type == QVariant::Int || type == QVariant::String);
+    if (!variant.isValid()) return {};
+    if (type == QVariant::Bool) return variant.toBool();
+    if (type == QVariant::Int) return variant.toInt();
+    return variant.toString().toStdString();
+}
+
+//! Convert bitcoin setting to QVariant. This is used to interpret values from
+//! settings.json, which have JSON types, and values from bitcoin.conf, which
+//! are untyped strings.
+static QVariant ToQVariant(const util::SettingsValue& value, const QVariant& fallback = {})
+{
+    if (value.isNull()) return fallback;
+    if (value.isBool()) return value.get_bool();
+    if (value.isNum()) return value.get_int();
+    return QString::fromStdString(value.get_str());
+}
 
 OptionsModel::OptionsModel(interfaces::Node& node, QObject *parent, bool resetSettings) :
     QAbstractListModel(parent), m_node(&node)
@@ -90,7 +116,8 @@ void OptionsModel::Init(bool resetSettings)
 
     // These are shared with the core or have a command-line parameter
     // and we want command-line parameters to overwrite the GUI settings.
-    //
+    if (node().isSettingIgnored("dbcache")) addOverriddenOption("-dbcache");
+
     // If setting doesn't exist create it with defaults.
     //
     // If gArgs.SoftSetArg() or gArgs.SoftSetBoolArg() return false we were overridden
@@ -102,11 +129,6 @@ void OptionsModel::Init(bool resetSettings)
     if (!settings.contains("nPruneSize"))
         settings.setValue("nPruneSize", DEFAULT_PRUNE_TARGET_GB);
     SetPruneEnabled(settings.value("bPrune").toBool());
-
-    if (!settings.contains("nDatabaseCache"))
-        settings.setValue("nDatabaseCache", (qint64)nDefaultDbCache);
-    if (!gArgs.SoftSetArg("-dbcache", settings.value("nDatabaseCache").toString().toStdString()))
-        addOverriddenOption("-dbcache");
 
     if (!settings.contains("nThreadsScriptVerif"))
         settings.setValue("nThreadsScriptVerif", DEFAULT_SCRIPTCHECK_THREADS);
@@ -412,7 +434,7 @@ QVariant OptionsModel::getOption(OptionID option) const
     case PruneSize:
         return settings.value("nPruneSize");
     case DatabaseCache:
-        return settings.value("nDatabaseCache");
+        return ToQVariant(node().getPersistentSetting("dbcache"), (qint64)nDefaultDbCache);
     case ThreadsScriptVerif:
         return settings.value("nThreadsScriptVerif");
     case Listen:
@@ -426,6 +448,8 @@ QVariant OptionsModel::getOption(OptionID option) const
 
 bool OptionsModel::setOption(OptionID option, const QVariant& value)
 {
+    auto changed = [&] { return value.isValid() && value != getOption(option); };
+
     bool successful = true; /* set to false on parse error */
     QSettings settings;
 
@@ -566,8 +590,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         }
         break;
     case DatabaseCache:
-        if (settings.value("nDatabaseCache") != value) {
-            settings.setValue("nDatabaseCache", value);
+        if (changed()) {
+            node().updateSetting("dbcache", ToSetting(value, QVariant::Int));
             setRestartRequired(true);
         }
         break;
@@ -649,4 +673,16 @@ void OptionsModel::checkAndMigrate()
     if (settings.contains("addrSeparateProxyTor") && settings.value("addrSeparateProxyTor").toString().endsWith("%2")) {
         settings.setValue("addrSeparateProxyTor", GetDefaultProxyAddress());
     }
+
+    // Migrate and delete legacy GUI settings that have now moved to <datadir>/settings.json.
+    auto migrate_setting = [&](OptionID option, const QString& qt_name, const std::string& name) {
+        if (!settings.contains(qt_name)) return;
+        QVariant value = settings.value(qt_name);
+        if (node().getPersistentSetting(name).isNull()) {
+            setOption(option, value);
+        }
+        settings.remove(qt_name);
+    };
+
+    migrate_setting(DatabaseCache, "nDatabaseCache", "dbcache");
 }
