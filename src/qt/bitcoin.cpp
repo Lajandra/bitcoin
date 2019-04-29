@@ -259,7 +259,7 @@ void BitcoinApplication::createPaymentServer()
 
 void BitcoinApplication::createOptionsModel(bool resetSettings)
 {
-    optionsModel = new OptionsModel(this, resetSettings);
+    optionsModel = new OptionsModel(node(), this, resetSettings);
 }
 
 void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
@@ -278,7 +278,9 @@ void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
 void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
 {
     assert(!m_splash);
+    assert(m_node);
     m_splash = new SplashScreen(networkStyle);
+    m_splash->setNode(*m_node);
     // We don't hold a direct pointer to the splash screen after creation, but the splash
     // screen will take care of deleting itself when finish() happens.
     m_splash->show();
@@ -290,8 +292,6 @@ void BitcoinApplication::createNode(interfaces::Init& init)
 {
     assert(!m_node);
     m_node = init.makeNode();
-    if (optionsModel) optionsModel->setNode(*m_node);
-    if (m_splash) m_splash->setNode(*m_node);
 }
 
 bool BitcoinApplication::baseInitialize()
@@ -632,6 +632,7 @@ int GuiMain(int argc, char* argv[])
     app.parameterSetup();
     GUIUtil::LogQtInfo();
     // Load GUI settings from QSettings
+    app.createNode(*init);
     app.createOptionsModel(gArgs.GetBoolArg("-resetguisettings", false));
 
     if (did_show_intro) {
@@ -641,8 +642,6 @@ int GuiMain(int argc, char* argv[])
 
     if (gArgs.GetBoolArg("-splash", DEFAULT_SPLASHSCREEN) && !gArgs.GetBoolArg("-min", false))
         app.createSplashScreen(networkStyle.data());
-
-    app.createNode(*init);
 
     int rv = EXIT_SUCCESS;
     try
