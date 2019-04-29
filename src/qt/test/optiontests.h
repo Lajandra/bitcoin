@@ -13,10 +13,10 @@ class OptionTests : public QObject
 {
     Q_OBJECT
 public:
-    explicit OptionTests(interfaces::Node& node) : m_node(node) {}
+    explicit OptionTests(interfaces::Node& node);
 
 private Q_SLOTS:
-    void optionTests();
+    void integerGetArgBug();
     void parametersInteraction();
 
 private:
