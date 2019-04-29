@@ -52,6 +52,7 @@ const char* SettingName(OptionsModel::OptionID option)
     case OptionsModel::ProxyIPTor: return "onion";
     case OptionsModel::ProxyPortTor: return "onion";
     case OptionsModel::ProxyUseTor: return "onion";
+    case OptionsModel::Language: return "lang";
     default: throw std::logic_error(strprintf("GUI option %i has no corresponding node setting.", option));
     };
 }
@@ -131,6 +132,7 @@ bool OptionsModel::Init(bilingual_str& error)
     ProxySetting onion = ParseProxyString(SettingToString(node().getPersistentSetting("onion"), GetDefaultProxyAddress().toStdString()));
     m_onion_ip = onion.ip;
     m_onion_port = onion.port;
+    language = QString::fromStdString(SettingToString(node().getPersistentSetting("lang"), ""));
 
     checkAndMigrate();
 
@@ -184,7 +186,7 @@ bool OptionsModel::Init(bilingual_str& error)
     // These are shared with the core or have a command-line parameter
     // and we want command-line parameters to overwrite the GUI settings.
     for (OptionID option : {DatabaseCache, ThreadsScriptVerif, SpendZeroConfChange, ExternalSignerPath, MapPortUPnP,
-                            MapPortNatpmp, Listen, Server, Prune, ProxyUse, ProxyUseTor}) {
+                            MapPortNatpmp, Listen, Server, Prune, ProxyUse, ProxyUseTor, Language}) {
         std::string setting = SettingName(option);
         if (node().isSettingIgnored(setting)) addOverriddenOption("-" + setting);
         try {
@@ -198,9 +200,6 @@ bool OptionsModel::Init(bilingual_str& error)
     }
 
     // If setting doesn't exist create it with defaults.
-    //
-    // If gArgs.SoftSetArg() or gArgs.SoftSetBoolArg() return false we were overridden
-    // by command-line and show this in the UI.
 
     // Main
     if (!settings.contains("strDataDir"))
@@ -215,13 +214,6 @@ bool OptionsModel::Init(bilingual_str& error)
 #endif
 
     // Display
-    if (!settings.contains("language"))
-        settings.setValue("language", "");
-    if (!gArgs.SoftSetArg("-lang", settings.value("language").toString().toStdString()))
-        addOverriddenOption("-lang");
-
-    language = settings.value("language").toString();
-
     if (!settings.contains("UseEmbeddedMonospacedFont")) {
         settings.setValue("UseEmbeddedMonospacedFont", "true");
     }
@@ -414,7 +406,7 @@ QVariant OptionsModel::getOption(OptionID option) const
     case ThirdPartyTxUrls:
         return strThirdPartyTxUrls;
     case Language:
-        return settings.value("language");
+        return QString::fromStdString(SettingToString(setting(), ""));
     case UseEmbeddedMonospacedFont:
         return m_use_embedded_monospaced_font;
     case CoinControlFeatures:
@@ -557,8 +549,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         }
         break;
     case Language:
-        if (settings.value("language") != value) {
-            settings.setValue("language", value);
+        if (changed()) {
+            update(value.toString().toStdString());
             setRestartRequired(true);
         }
         break;
@@ -709,6 +701,7 @@ void OptionsModel::checkAndMigrate()
     migrate_setting(ProxyUse, "fUseProxy");
     migrate_setting(ProxyIPTor, "addrSeparateProxyTor");
     migrate_setting(ProxyUseTor, "fUseSeparateProxyTor");
+    migrate_setting(Language, "language");
 
     // In case migrating QSettings caused any settings value to change, rerun
     // parameter interaction code to update other settings. This is particularly
