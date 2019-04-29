@@ -44,6 +44,15 @@ KNOWN_VIOLATIONS=(
     "src/bitcoin-tx.cpp.*stoul"
     "src/dbwrapper.cpp.*stoul"
     "src/dbwrapper.cpp:.*vsnprintf"
+<<<<<<< HEAD
+||||||| parent of ec7cc41c00c (Unify bitcoin-qt and bitcoind persistent settings)
+    "src/node/blockstorage.cpp:.*atoi"
+    "src/qt/rpcconsole.cpp:.*atoi"
+=======
+    "src/node/blockstorage.cpp:.*atoi"
+    "src/qt/optionsmodel.cpp:.*atoi"
+    "src/qt/rpcconsole.cpp:.*atoi"
+>>>>>>> ec7cc41c00c (Unify bitcoin-qt and bitcoind persistent settings)
     "src/rest.cpp:.*strtol"
     "src/test/dbwrapper_tests.cpp:.*snprintf"
     "src/test/fuzz/locale.cpp"
