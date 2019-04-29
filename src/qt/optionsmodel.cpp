@@ -95,6 +95,7 @@ void OptionsModel::Init(bool resetSettings)
     ProxySetting onion = ParseProxyString(SettingToString(node().getPersistentSetting("onion"), GetDefaultProxyAddress().toStdString()));
     m_onion_ip = onion.ip;
     m_onion_port = onion.port;
+    language = QString::fromStdString(SettingToString(node().getPersistentSetting("lang"), ""));
 
     checkAndMigrate();
 
@@ -151,11 +152,9 @@ void OptionsModel::Init(bool resetSettings)
     if (node().isSettingIgnored("server")) addOverriddenOption("-server");
     if (node().isSettingIgnored("proxy")) addOverriddenOption("-proxy");
     if (node().isSettingIgnored("onion")) addOverriddenOption("-onion");
+    if (node().isSettingIgnored("lang")) addOverriddenOption("-lang");
 
     // If setting doesn't exist create it with defaults.
-    //
-    // If gArgs.SoftSetArg() or gArgs.SoftSetBoolArg() return false we were overridden
-    // by command-line and show this in the UI.
 
     // Main
     if (!settings.contains("strDataDir"))
@@ -170,13 +169,6 @@ void OptionsModel::Init(bool resetSettings)
 #endif
 
     // Display
-    if (!settings.contains("language"))
-        settings.setValue("language", "");
-    if (!gArgs.SoftSetArg("-lang", settings.value("language").toString().toStdString()))
-        addOverriddenOption("-lang");
-
-    language = settings.value("language").toString();
-
     if (!settings.contains("UseEmbeddedMonospacedFont")) {
         settings.setValue("UseEmbeddedMonospacedFont", "true");
     }
@@ -365,7 +357,7 @@ QVariant OptionsModel::getOption(OptionID option) const
     case ThirdPartyTxUrls:
         return strThirdPartyTxUrls;
     case Language:
-        return settings.value("language");
+        return QString::fromStdString(SettingToString(node().getPersistentSetting("lang"), ""));
     case UseEmbeddedMonospacedFont:
         return m_use_embedded_monospaced_font;
     case CoinControlFeatures:
@@ -507,8 +499,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         }
         break;
     case Language:
-        if (settings.value("language") != value) {
-            settings.setValue("language", value);
+        if (changed()) {
+            node().updateSetting("lang", value.toString().toStdString());
             setRestartRequired(true);
         }
         break;
@@ -662,6 +654,7 @@ void OptionsModel::checkAndMigrate()
     migrate_setting(ProxyUse, "fUseProxy", "proxy");
     migrate_setting(ProxyIPTor, "addrSeparateProxyTor", "onion");
     migrate_setting(ProxyUseTor, "fUseSeparateProxyTor", "onion");
+    migrate_setting(Language, "language", "lang");
 
     // In case migrating QSettings caused any settings value to change, rerun
     // parameter interaction code to update other settings. This is particularly
