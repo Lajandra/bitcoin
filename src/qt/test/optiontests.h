@@ -16,6 +16,7 @@ public:
     explicit OptionTests(interfaces::Node& node);
 
 private Q_SLOTS:
+    void migrateSettings();
     void integerGetArgBug();
     void parametersInteraction();
 
