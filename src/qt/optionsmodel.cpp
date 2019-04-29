@@ -19,15 +19,90 @@
 #include <txdb.h>       // for -dbcache defaults
 #include <util/string.h>
 #include <validation.h> // For DEFAULT_SCRIPTCHECK_THREADS
+#include <wallet/wallet.h> // For DEFAULT_SPEND_ZEROCONF_CHANGE
 
 #include <QDebug>
 #include <QLatin1Char>
 #include <QSettings>
 #include <QStringList>
 
+#include <univalue.h>
+
 const char *DEFAULT_GUI_PROXY_HOST = "127.0.0.1";
 
 static const QString GetDefaultProxyAddress();
+
+//! Convert bitcoin settings value to integer.
+static int ToInt(const util::SettingsValue& value, int fallback = 0)
+{
+    if (value.isNull()) return fallback;
+    if (value.isBool()) return value.get_bool();
+    if (value.isNum()) return value.get_int();
+    return LocaleIndependentAtoi<int>(value.get_str().c_str());
+}
+
+//! Convert bitcoin settings value to QString.
+static QString ToQString(const util::SettingsValue& value, const QString& fallback = {})
+{
+    if (value.isNull()) return fallback;
+    if (value.isFalse()) return "";
+    return QString::fromStdString(value.get_str());
+}
+
+//! Convert bitcoin setting to QVariant.
+static QVariant ToQVariant(const util::SettingsValue& value, const QVariant& fallback = {})
+{
+    if (value.isNull()) return fallback;
+    if (value.isBool()) return value.get_bool();
+    if (value.isNum()) return value.get_int();
+    return QString::fromStdString(value.get_str());
+}
+
+//! Convert QSettings QVariant value to bitcoin setting.
+static util::SettingsValue ToSetting(const QVariant& variant, QVariant::Type type, const util::SettingsValue& fallback = {})
+{
+    if (!variant.isValid()) return fallback;
+    if (type == QVariant::Bool) return variant.toBool();
+    if (type == QVariant::Int) return variant.toInt();
+    std::string str = variant.toString().toStdString();
+    if (str.empty()) return false;
+    return str;
+}
+
+//! Get pruning enabled value to show in GUI from bitcoin -prune setting.
+static bool PruneEnabled(const util::SettingsValue& prune_setting)
+{
+    // -prune=1 setting is manual pruning mode, so disabled for purposes of the gui
+    return ToInt(prune_setting) > 1;
+}
+
+//! Get pruning size value to show in GUI from bitcoin -prune setting. If
+//! pruning is not enabled, just show default recommended pruning size (2GB).
+static int PruneSizeGB(const util::SettingsValue& prune_setting)
+{
+    int value = ToInt(prune_setting);
+    return value > 1 ? PruneMiBtoGB(value) : DEFAULT_PRUNE_TARGET_GB;
+}
+
+//! Convert enabled/size values to bitcoin -prune setting.
+static util::SettingsValue PruneSetting(bool prune_enabled, int prune_size_gb)
+{
+    assert(!prune_enabled || prune_size_gb >= 1); // PruneSizeGB and ParsePruneSizeGB never return less
+    return prune_enabled ? PruneGBtoMiB(prune_size_gb) : 0;
+}
+
+//! Interpret pruning size value provided by user in GUI or loaded from a legacy
+//! QSettings source (windows registry key or qt .conf file). Smallest value
+//! that the GUI can display is 1 GB, so round up if anything less is parsed.
+static int ParsePruneSizeGB(const QVariant& prune_size) { return std::max(1, prune_size.toInt()); }
+
+struct ProxySetting {
+    bool is_set;
+    QString ip;
+    QString port;
+};
+static ProxySetting ParseProxyString(const QString& proxy);
+static QString ProxyString(bool is_set, QString ip, QString port);
 
 OptionsModel::OptionsModel(interfaces::Node& node, QObject *parent, bool resetSettings) :
     QAbstractListModel(parent), m_node(&node)
@@ -45,6 +120,16 @@ void OptionsModel::Init(bool resetSettings)
 {
     if (resetSettings)
         Reset();
+
+    // Initialize display settings from stored settings.
+    m_prune_size_gb = PruneSizeGB(node().getPersistentSetting("prune"));
+    ProxySetting proxy = ParseProxyString(ToQString(node().getPersistentSetting("proxy")));
+    m_proxy_ip = proxy.ip;
+    m_proxy_port = proxy.port;
+    ProxySetting onion = ParseProxyString(ToQString(node().getPersistentSetting("onion")));
+    m_onion_ip = onion.ip;
+    m_onion_port = onion.port;
+    language = ToQString(node().getPersistentSetting("lang"));
 
     checkAndMigrate();
 
@@ -90,107 +175,30 @@ void OptionsModel::Init(bool resetSettings)
 
     // These are shared with the core or have a command-line parameter
     // and we want command-line parameters to overwrite the GUI settings.
-    //
+    if (node().isSettingIgnored("prune")) addOverriddenOption("-prune");
+    if (node().isSettingIgnored("dbcache")) addOverriddenOption("-dbcache");
+    if (node().isSettingIgnored("par")) addOverriddenOption("-par");
+    if (node().isSettingIgnored("spendzeroconfchange")) addOverriddenOption("-spendzeroconfchange");
+    if (node().isSettingIgnored("signer")) addOverriddenOption("-signer");
+    if (node().isSettingIgnored("upnp")) addOverriddenOption("-upnp");
+    if (node().isSettingIgnored("natpmp")) addOverriddenOption("-natpmp");
+    if (node().isSettingIgnored("listen")) addOverriddenOption("-listen");
+    if (node().isSettingIgnored("server")) addOverriddenOption("-server");
+    if (node().isSettingIgnored("proxy")) addOverriddenOption("-proxy");
+    if (node().isSettingIgnored("onion")) addOverriddenOption("-onion");
+    if (node().isSettingIgnored("lang")) addOverriddenOption("-lang");
+
     // If setting doesn't exist create it with defaults.
-    //
-    // If gArgs.SoftSetArg() or gArgs.SoftSetBoolArg() return false we were overridden
-    // by command-line and show this in the UI.
-
-    // Main
-    if (!settings.contains("bPrune"))
-        settings.setValue("bPrune", false);
-    if (!settings.contains("nPruneSize"))
-        settings.setValue("nPruneSize", DEFAULT_PRUNE_TARGET_GB);
-    SetPruneEnabled(settings.value("bPrune").toBool());
-
-    if (!settings.contains("nDatabaseCache"))
-        settings.setValue("nDatabaseCache", (qint64)nDefaultDbCache);
-    if (!gArgs.SoftSetArg("-dbcache", settings.value("nDatabaseCache").toString().toStdString()))
-        addOverriddenOption("-dbcache");
-
-    if (!settings.contains("nThreadsScriptVerif"))
-        settings.setValue("nThreadsScriptVerif", DEFAULT_SCRIPTCHECK_THREADS);
-    if (!gArgs.SoftSetArg("-par", settings.value("nThreadsScriptVerif").toString().toStdString()))
-        addOverriddenOption("-par");
-
     if (!settings.contains("strDataDir"))
         settings.setValue("strDataDir", GUIUtil::getDefaultDataDirectory());
 
     // Wallet
 #ifdef ENABLE_WALLET
-    if (!settings.contains("bSpendZeroConfChange"))
-        settings.setValue("bSpendZeroConfChange", true);
-    if (!gArgs.SoftSetBoolArg("-spendzeroconfchange", settings.value("bSpendZeroConfChange").toBool()))
-        addOverriddenOption("-spendzeroconfchange");
-
-    if (!settings.contains("external_signer_path"))
-        settings.setValue("external_signer_path", "");
-
-    if (!gArgs.SoftSetArg("-signer", settings.value("external_signer_path").toString().toStdString())) {
-        addOverriddenOption("-signer");
-    }
-
     if (!settings.contains("SubFeeFromAmount")) {
         settings.setValue("SubFeeFromAmount", false);
     }
     m_sub_fee_from_amount = settings.value("SubFeeFromAmount", false).toBool();
 #endif
-
-    // Network
-    if (!settings.contains("fUseUPnP"))
-        settings.setValue("fUseUPnP", DEFAULT_UPNP);
-    if (!gArgs.SoftSetBoolArg("-upnp", settings.value("fUseUPnP").toBool()))
-        addOverriddenOption("-upnp");
-
-    if (!settings.contains("fUseNatpmp")) {
-        settings.setValue("fUseNatpmp", DEFAULT_NATPMP);
-    }
-    if (!gArgs.SoftSetBoolArg("-natpmp", settings.value("fUseNatpmp").toBool())) {
-        addOverriddenOption("-natpmp");
-    }
-
-    if (!settings.contains("fListen"))
-        settings.setValue("fListen", DEFAULT_LISTEN);
-    if (!gArgs.SoftSetBoolArg("-listen", settings.value("fListen").toBool())) {
-        addOverriddenOption("-listen");
-    } else if (!settings.value("fListen").toBool()) {
-        gArgs.SoftSetBoolArg("-listenonion", false);
-    }
-
-    if (!settings.contains("server")) {
-        settings.setValue("server", false);
-    }
-    if (!gArgs.SoftSetBoolArg("-server", settings.value("server").toBool())) {
-        addOverriddenOption("-server");
-    }
-
-    if (!settings.contains("fUseProxy"))
-        settings.setValue("fUseProxy", false);
-    if (!settings.contains("addrProxy"))
-        settings.setValue("addrProxy", GetDefaultProxyAddress());
-    // Only try to set -proxy, if user has enabled fUseProxy
-    if ((settings.value("fUseProxy").toBool() && !gArgs.SoftSetArg("-proxy", settings.value("addrProxy").toString().toStdString())))
-        addOverriddenOption("-proxy");
-    else if(!settings.value("fUseProxy").toBool() && !gArgs.GetArg("-proxy", "").empty())
-        addOverriddenOption("-proxy");
-
-    if (!settings.contains("fUseSeparateProxyTor"))
-        settings.setValue("fUseSeparateProxyTor", false);
-    if (!settings.contains("addrSeparateProxyTor"))
-        settings.setValue("addrSeparateProxyTor", GetDefaultProxyAddress());
-    // Only try to set -onion, if user has enabled fUseSeparateProxyTor
-    if ((settings.value("fUseSeparateProxyTor").toBool() && !gArgs.SoftSetArg("-onion", settings.value("addrSeparateProxyTor").toString().toStdString())))
-        addOverriddenOption("-onion");
-    else if(!settings.value("fUseSeparateProxyTor").toBool() && !gArgs.GetArg("-onion", "").empty())
-        addOverriddenOption("-onion");
-
-    // Display
-    if (!settings.contains("language"))
-        settings.setValue("language", "");
-    if (!gArgs.SoftSetArg("-lang", settings.value("language").toString().toStdString()))
-        addOverriddenOption("-lang");
-
-    language = settings.value("language").toString();
 
     if (!settings.contains("UseEmbeddedMonospacedFont")) {
         settings.setValue("UseEmbeddedMonospacedFont", "true");
@@ -248,21 +256,15 @@ int OptionsModel::rowCount(const QModelIndex & parent) const
     return OptionIDRowCount;
 }
 
-struct ProxySetting {
-    bool is_set;
-    QString ip;
-    QString port;
-};
-
-static ProxySetting GetProxySetting(QSettings &settings, const QString &name)
+static ProxySetting ParseProxyString(const QString& proxy)
 {
     static const ProxySetting default_val = {false, DEFAULT_GUI_PROXY_HOST, QString("%1").arg(DEFAULT_GUI_PROXY_PORT)};
     // Handle the case that the setting is not set at all
-    if (!settings.contains(name)) {
+    if (proxy.isEmpty()) {
         return default_val;
     }
     // contains IP at index 0 and port at index 1
-    QStringList ip_port = GUIUtil::SplitSkipEmptyParts(settings.value(name).toString(), ":");
+    QStringList ip_port = GUIUtil::SplitSkipEmptyParts(proxy, ":");
     if (ip_port.size() == 2) {
         return {true, ip_port.at(0), ip_port.at(1)};
     } else { // Invalid: return default
@@ -270,9 +272,9 @@ static ProxySetting GetProxySetting(QSettings &settings, const QString &name)
     }
 }
 
-static void SetProxySetting(QSettings &settings, const QString &name, const ProxySetting &ip_port)
+static QString ProxyString(bool is_set, QString ip, QString port)
 {
-    settings.setValue(name, QString{ip_port.ip + QLatin1Char(':') + ip_port.port});
+    return is_set ? ip + ":" + port : QString{""};
 }
 
 static const QString GetDefaultProxyAddress()
@@ -280,29 +282,27 @@ static const QString GetDefaultProxyAddress()
     return QString("%1:%2").arg(DEFAULT_GUI_PROXY_HOST).arg(DEFAULT_GUI_PROXY_PORT);
 }
 
-void OptionsModel::SetPruneEnabled(bool prune, bool force)
-{
-    QSettings settings;
-    settings.setValue("bPrune", prune);
-    const int64_t prune_target_mib = PruneGBtoMiB(settings.value("nPruneSize").toInt());
-    std::string prune_val = prune ? ToString(prune_target_mib) : "0";
-    if (force) {
-        gArgs.ForceSetArg("-prune", prune_val);
-        return;
-    }
-    if (!gArgs.SoftSetArg("-prune", prune_val)) {
-        addOverriddenOption("-prune");
-    }
-}
-
-void OptionsModel::SetPruneTargetGB(int prune_target_gb, bool force)
+void OptionsModel::SetPruneTargetGB(int prune_target_gb)
 {
     const bool prune = prune_target_gb > 0;
-    if (prune) {
-        QSettings settings;
-        settings.setValue("nPruneSize", prune_target_gb);
+    const util::SettingsValue cur_value = node().getPersistentSetting("prune");
+    const util::SettingsValue new_value = PruneSetting(prune, prune_target_gb);
+
+    // Force setting to take effect. It is still safe to change the value at
+    // this point because this function is only called after the intro screen is
+    // shown, before the node starts.
+    node().forceSetting("prune", new_value);
+    m_prune_size_gb = PruneSizeGB(new_value);
+
+    // Update settings.json if value configured in intro screen is different
+    // from saved value. Avoid writing settings.json if bitcoin.conf value
+    // doesn't need to be overridden.
+    if (PruneEnabled(cur_value) != PruneEnabled(new_value) ||
+        PruneSizeGB(cur_value) != PruneSizeGB(new_value)) {
+        // Call updateSetting() instead of setOption() to avoid setting
+        // RestartRequired flag
+        node().updateSetting("prune", new_value);
     }
-    SetPruneEnabled(prune, force);
 }
 
 // read QSettings values and return them
@@ -341,13 +341,13 @@ QVariant OptionsModel::getOption(OptionID option) const
         return fMinimizeToTray;
     case MapPortUPnP:
 #ifdef USE_UPNP
-        return settings.value("fUseUPnP");
+        return ToQVariant(node().getPersistentSetting("upnp"), DEFAULT_UPNP);
 #else
         return false;
 #endif // USE_UPNP
     case MapPortNatpmp:
 #ifdef USE_NATPMP
-        return settings.value("fUseNatpmp");
+        return ToQVariant(node().getPersistentSetting("natpmp"), DEFAULT_NATPMP);
 #else
         return false;
 #endif // USE_NATPMP
@@ -356,25 +356,25 @@ QVariant OptionsModel::getOption(OptionID option) const
 
     // default proxy
     case ProxyUse:
-        return settings.value("fUseProxy", false);
+        return !ToQString(node().getPersistentSetting("proxy")).isEmpty();
     case ProxyIP:
-        return GetProxySetting(settings, "addrProxy").ip;
+        return m_proxy_ip;
     case ProxyPort:
-        return GetProxySetting(settings, "addrProxy").port;
+        return m_proxy_port;
 
     // separate Tor proxy
     case ProxyUseTor:
-        return settings.value("fUseSeparateProxyTor", false);
+        return !ToQString(node().getPersistentSetting("onion")).isEmpty();
     case ProxyIPTor:
-        return GetProxySetting(settings, "addrSeparateProxyTor").ip;
+        return m_onion_ip;
     case ProxyPortTor:
-        return GetProxySetting(settings, "addrSeparateProxyTor").port;
+        return m_onion_port;
 
 #ifdef ENABLE_WALLET
     case SpendZeroConfChange:
-        return settings.value("bSpendZeroConfChange");
+        return ToQVariant(node().getPersistentSetting("spendzeroconfchange"), wallet::DEFAULT_SPEND_ZEROCONF_CHANGE);
     case ExternalSignerPath:
-        return settings.value("external_signer_path");
+        return ToQVariant(node().getPersistentSetting("signer"), "");
     case SubFeeFromAmount:
         return m_sub_fee_from_amount;
 #endif
@@ -383,7 +383,7 @@ QVariant OptionsModel::getOption(OptionID option) const
     case ThirdPartyTxUrls:
         return strThirdPartyTxUrls;
     case Language:
-        return settings.value("language");
+        return ToQVariant(node().getPersistentSetting("lang"), "");
     case UseEmbeddedMonospacedFont:
         return m_use_embedded_monospaced_font;
     case CoinControlFeatures:
@@ -391,17 +391,17 @@ QVariant OptionsModel::getOption(OptionID option) const
     case EnablePSBTControls:
         return settings.value("enable_psbt_controls");
     case Prune:
-        return settings.value("bPrune");
+        return PruneEnabled(node().getPersistentSetting("prune"));
     case PruneSize:
-        return settings.value("nPruneSize");
+        return m_prune_size_gb;
     case DatabaseCache:
-        return settings.value("nDatabaseCache");
+        return ToQVariant(node().getPersistentSetting("dbcache"), (qint64)nDefaultDbCache);
     case ThreadsScriptVerif:
-        return settings.value("nThreadsScriptVerif");
+        return ToQVariant(node().getPersistentSetting("par"), DEFAULT_SCRIPTCHECK_THREADS);
     case Listen:
-        return settings.value("fListen");
+        return ToQVariant(node().getPersistentSetting("listen"), DEFAULT_LISTEN);
     case Server:
-        return settings.value("server");
+        return ToQVariant(node().getPersistentSetting("server"), false);
     default:
         return QVariant();
     }
@@ -409,6 +409,8 @@ QVariant OptionsModel::getOption(OptionID option) const
 
 bool OptionsModel::setOption(OptionID option, const QVariant& value)
 {
+    auto changed = [&] { return value.isValid() && value != getOption(option); };
+
     bool successful = true; /* set to false on parse error */
     QSettings settings;
 
@@ -426,10 +428,16 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         settings.setValue("fMinimizeToTray", fMinimizeToTray);
         break;
     case MapPortUPnP: // core option - can be changed on-the-fly
-        settings.setValue("fUseUPnP", value.toBool());
+        if (changed()) {
+            node().updateSetting("upnp", ToSetting(value, QVariant::Bool));
+            node().mapPort(value.toBool(), getOption(MapPortNatpmp).toBool());
+        }
         break;
     case MapPortNatpmp: // core option - can be changed on-the-fly
-        settings.setValue("fUseNatpmp", value.toBool());
+        if (changed()) {
+            node().updateSetting("natpmp", ToSetting(value, QVariant::Bool));
+            node().mapPort(getOption(MapPortUPnP).toBool(), value.toBool());
+        }
         break;
     case MinimizeOnClose:
         fMinimizeOnClose = value.toBool();
@@ -438,66 +446,66 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
 
     // default proxy
     case ProxyUse:
-        if (settings.value("fUseProxy") != value) {
-            settings.setValue("fUseProxy", value.toBool());
+        if (changed()) {
+            node().updateSetting("proxy", ProxyString(value.toBool(), m_proxy_ip, m_proxy_port).toStdString());
             setRestartRequired(true);
         }
         break;
-    case ProxyIP: {
-        auto ip_port = GetProxySetting(settings, "addrProxy");
-        if (!ip_port.is_set || ip_port.ip != value.toString()) {
-            ip_port.ip = value.toString();
-            SetProxySetting(settings, "addrProxy", ip_port);
-            setRestartRequired(true);
+    case ProxyIP:
+        if (changed()) {
+            m_proxy_ip = value.toString();
+            if (getOption(ProxyUse).toBool()) {
+                node().updateSetting("proxy", ProxyString(true, m_proxy_ip, m_proxy_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
-    case ProxyPort: {
-        auto ip_port = GetProxySetting(settings, "addrProxy");
-        if (!ip_port.is_set || ip_port.port != value.toString()) {
-            ip_port.port = value.toString();
-            SetProxySetting(settings, "addrProxy", ip_port);
-            setRestartRequired(true);
+        break;
+    case ProxyPort:
+        if (changed()) {
+            m_proxy_port = value.toString();
+            if (getOption(ProxyUse).toBool()) {
+                node().updateSetting("proxy", ProxyString(true, m_proxy_ip, m_proxy_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
+        break;
 
     // separate Tor proxy
     case ProxyUseTor:
-        if (settings.value("fUseSeparateProxyTor") != value) {
-            settings.setValue("fUseSeparateProxyTor", value.toBool());
+        if (changed()) {
+            node().updateSetting("onion", ProxyString(value.toBool(), m_onion_ip, m_onion_port).toStdString());
             setRestartRequired(true);
         }
         break;
-    case ProxyIPTor: {
-        auto ip_port = GetProxySetting(settings, "addrSeparateProxyTor");
-        if (!ip_port.is_set || ip_port.ip != value.toString()) {
-            ip_port.ip = value.toString();
-            SetProxySetting(settings, "addrSeparateProxyTor", ip_port);
-            setRestartRequired(true);
+    case ProxyIPTor:
+        if (changed()) {
+            m_onion_ip = value.toString();
+            if (getOption(ProxyUseTor).toBool()) {
+                node().updateSetting("onion", ProxyString(true, m_onion_ip, m_onion_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
-    case ProxyPortTor: {
-        auto ip_port = GetProxySetting(settings, "addrSeparateProxyTor");
-        if (!ip_port.is_set || ip_port.port != value.toString()) {
-            ip_port.port = value.toString();
-            SetProxySetting(settings, "addrSeparateProxyTor", ip_port);
-            setRestartRequired(true);
+        break;
+    case ProxyPortTor:
+        if (changed()) {
+            m_onion_port = value.toString();
+            if (getOption(ProxyUseTor).toBool()) {
+                node().updateSetting("onion", ProxyString(true, m_onion_ip, m_onion_port).toStdString());
+                setRestartRequired(true);
+            }
         }
-    }
-    break;
+        break;
 
 #ifdef ENABLE_WALLET
     case SpendZeroConfChange:
-        if (settings.value("bSpendZeroConfChange") != value) {
-            settings.setValue("bSpendZeroConfChange", value);
+        if (changed()) {
+            node().updateSetting("spendzeroconfchange", ToSetting(value, QVariant::Bool));
             setRestartRequired(true);
         }
         break;
     case ExternalSignerPath:
-        if (settings.value("external_signer_path") != value.toString()) {
-            settings.setValue("external_signer_path", value.toString());
+        if (changed()) {
+            node().updateSetting("signer", ToSetting(value, QVariant::String));
             setRestartRequired(true);
         }
         break;
@@ -517,8 +525,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         }
         break;
     case Language:
-        if (settings.value("language") != value) {
-            settings.setValue("language", value);
+        if (changed()) {
+            node().updateSetting("lang", ToSetting(value, QVariant::String));
             setRestartRequired(true);
         }
         break;
@@ -537,38 +545,41 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         settings.setValue("enable_psbt_controls", m_enable_psbt_controls);
         break;
     case Prune:
-        if (settings.value("bPrune") != value) {
-            settings.setValue("bPrune", value);
+        if (changed()) {
+            node().updateSetting("prune", PruneSetting(value.toBool(), m_prune_size_gb));
             setRestartRequired(true);
         }
         break;
     case PruneSize:
-        if (settings.value("nPruneSize") != value) {
-            settings.setValue("nPruneSize", value);
-            setRestartRequired(true);
+        if (changed()) {
+            m_prune_size_gb = ParsePruneSizeGB(value);
+            if (getOption(Prune).toBool()) {
+                node().updateSetting("prune", PruneSetting(true, m_prune_size_gb));
+                setRestartRequired(true);
+            }
         }
         break;
     case DatabaseCache:
-        if (settings.value("nDatabaseCache") != value) {
-            settings.setValue("nDatabaseCache", value);
+        if (changed()) {
+            node().updateSetting("dbcache", ToSetting(value, QVariant::Int));
             setRestartRequired(true);
         }
         break;
     case ThreadsScriptVerif:
-        if (settings.value("nThreadsScriptVerif") != value) {
-            settings.setValue("nThreadsScriptVerif", value);
+        if (changed()) {
+            node().updateSetting("par", ToSetting(value, QVariant::Int));
             setRestartRequired(true);
         }
         break;
     case Listen:
-        if (settings.value("fListen") != value) {
-            settings.setValue("fListen", value);
+        if (changed()) {
+            node().updateSetting("listen", ToSetting(value, QVariant::Bool));
             setRestartRequired(true);
         }
         break;
     case Server:
-        if (settings.value("server") != value) {
-            settings.setValue("server", value);
+        if (changed()) {
+            node().updateSetting("server", ToSetting(value, QVariant::Bool));
             setRestartRequired(true);
         }
         break;
@@ -632,4 +643,42 @@ void OptionsModel::checkAndMigrate()
     if (settings.contains("addrSeparateProxyTor") && settings.value("addrSeparateProxyTor").toString().endsWith("%2")) {
         settings.setValue("addrSeparateProxyTor", GetDefaultProxyAddress());
     }
+
+    // Migrate and delete legacy GUI settings that have now moved to <datadir>/settings.json.
+    auto migrate_setting = [&](OptionID option, const QString& qt_name, const std::string& name) {
+        if (!settings.contains(qt_name)) return;
+        QVariant value = settings.value(qt_name);
+        if (node().getPersistentSetting(name).isNull()) {
+            if (option == ProxyIP) {
+                ProxySetting parsed = ParseProxyString(value.toString());
+                setOption(ProxyIP, parsed.ip);
+                setOption(ProxyPort, parsed.port);
+            } else if (option == ProxyIPTor) {
+                ProxySetting parsed = ParseProxyString(value.toString());
+                setOption(ProxyIPTor, parsed.ip);
+                setOption(ProxyPortTor, parsed.port);
+            } else {
+                setOption(option, value);
+            }
+        }
+        settings.remove(qt_name);
+    };
+
+    migrate_setting(DatabaseCache, "nDatabaseCache", "dbcache");
+    migrate_setting(ThreadsScriptVerif, "nThreadsScriptVerif", "par");
+#ifdef ENABLE_WALLET
+    migrate_setting(SpendZeroConfChange, "bSpendZeroConfChange", "spendzeroconfchange");
+    migrate_setting(ExternalSignerPath, "external_signer_path", "signer");
+#endif
+    migrate_setting(MapPortUPnP, "fUseUPnP", "upnp");
+    migrate_setting(MapPortNatpmp, "fUseNatpmp", "natpmp");
+    migrate_setting(Listen, "fListen", "listen");
+    migrate_setting(Server, "server", "server");
+    migrate_setting(PruneSize, "nPruneSize", "prune");
+    migrate_setting(Prune, "bPrune", "prune");
+    migrate_setting(ProxyIP, "addrProxy", "proxy");
+    migrate_setting(ProxyUse, "fUseProxy", "proxy");
+    migrate_setting(ProxyIPTor, "addrSeparateProxyTor", "onion");
+    migrate_setting(ProxyUseTor, "fUseSeparateProxyTor", "onion");
+    migrate_setting(Language, "language", "lang");
 }
