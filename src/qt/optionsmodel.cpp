@@ -26,14 +26,23 @@
 #include <QStringList>
 #include <QVariant>
 
+#include <univalue.h>
+
 const char *DEFAULT_GUI_PROXY_HOST = "127.0.0.1";
 
 static const QString GetDefaultProxyAddress();
 
-OptionsModel::OptionsModel(interfaces::Node& node, QObject *parent, bool resetSettings) :
+const char* OptionsModel::SettingName(OptionID option)
+{
+    switch (option) {
+    case DatabaseCache: return "dbcache";
+    default: throw std::logic_error(strprintf("GUI option %i has no corresponding node setting.", option));
+    };
+}
+
+OptionsModel::OptionsModel(interfaces::Node& node, QObject *parent) :
     QAbstractListModel(parent), m_node(&node)
 {
-    Init(resetSettings);
 }
 
 void OptionsModel::addOverriddenOption(const std::string &option)
@@ -42,11 +51,8 @@ void OptionsModel::addOverriddenOption(const std::string &option)
 }
 
 // Writes all missing QSettings with their default values
-void OptionsModel::Init(bool resetSettings)
+bool OptionsModel::Init(bilingual_str& error)
 {
-    if (resetSettings)
-        Reset();
-
     checkAndMigrate();
 
     QSettings settings;
@@ -98,7 +104,17 @@ void OptionsModel::Init(bool resetSettings)
 
     // These are shared with the core or have a command-line parameter
     // and we want command-line parameters to overwrite the GUI settings.
-    //
+    for (OptionID option : {DatabaseCache}) {
+        std::string setting = SettingName(option);
+        if (node().isSettingIgnored(setting)) addOverriddenOption("-" + setting);
+        try {
+            getOption(option);
+        } catch (const std::runtime_error& e) {
+            error = strprintf(_("Could not read setting \"%s\", %s."), setting, e.what());
+            return false;
+        }
+    }
+
     // If setting doesn't exist create it with defaults.
     //
     // If gArgs.SoftSetArg() or gArgs.SoftSetBoolArg() return false we were overridden
@@ -110,11 +126,6 @@ void OptionsModel::Init(bool resetSettings)
     if (!settings.contains("nPruneSize"))
         settings.setValue("nPruneSize", DEFAULT_PRUNE_TARGET_GB);
     SetPruneEnabled(settings.value("bPrune").toBool());
-
-    if (!settings.contains("nDatabaseCache"))
-        settings.setValue("nDatabaseCache", (qint64)nDefaultDbCache);
-    if (!gArgs.SoftSetArg("-dbcache", settings.value("nDatabaseCache").toString().toStdString()))
-        addOverriddenOption("-dbcache");
 
     if (!settings.contains("nThreadsScriptVerif"))
         settings.setValue("nThreadsScriptVerif", DEFAULT_SCRIPTCHECK_THREADS);
@@ -222,6 +233,8 @@ void OptionsModel::Init(bool resetSettings)
     }
     m_use_embedded_monospaced_font = settings.value("UseEmbeddedMonospacedFont").toBool();
     Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
+
+    return true;
 }
 
 /** Helper function to copy contents from one QSettings to another.
@@ -356,6 +369,8 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
 
 QVariant OptionsModel::getOption(OptionID option) const
 {
+    auto setting = [&]{ return node().getPersistentSetting(SettingName(option)); };
+
     QSettings settings;
     switch (option) {
     case StartAtStartup:
@@ -420,7 +435,7 @@ QVariant OptionsModel::getOption(OptionID option) const
     case PruneSize:
         return settings.value("nPruneSize");
     case DatabaseCache:
-        return settings.value("nDatabaseCache");
+        return qlonglong(SettingToInt(setting(), nDefaultDbCache));
     case ThreadsScriptVerif:
         return settings.value("nThreadsScriptVerif");
     case Listen:
@@ -434,6 +449,9 @@ QVariant OptionsModel::getOption(OptionID option) const
 
 bool OptionsModel::setOption(OptionID option, const QVariant& value)
 {
+    auto changed = [&] { return value.isValid() && value != getOption(option); };
+    auto update = [&](const util::SettingsValue& value) { return node().updateSetting(SettingName(option), value); };
+
     bool successful = true; /* set to false on parse error */
     QSettings settings;
 
@@ -574,8 +592,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         }
         break;
     case DatabaseCache:
-        if (settings.value("nDatabaseCache") != value) {
-            settings.setValue("nDatabaseCache", value);
+        if (changed()) {
+            update(static_cast<int64_t>(value.toLongLong()));
             setRestartRequired(true);
         }
         break;
@@ -654,4 +672,16 @@ void OptionsModel::checkAndMigrate()
     if (settings.contains("addrSeparateProxyTor") && settings.value("addrSeparateProxyTor").toString().endsWith("%2")) {
         settings.setValue("addrSeparateProxyTor", GetDefaultProxyAddress());
     }
+
+    // Migrate and delete legacy GUI settings that have now moved to <datadir>/settings.json.
+    auto migrate_setting = [&](OptionID option, const QString& qt_name) {
+        if (!settings.contains(qt_name)) return;
+        QVariant value = settings.value(qt_name);
+        if (node().getPersistentSetting(SettingName(option)).isNull()) {
+            setOption(option, value);
+        }
+        settings.remove(qt_name);
+    };
+
+    migrate_setting(DatabaseCache, "nDatabaseCache");
 }

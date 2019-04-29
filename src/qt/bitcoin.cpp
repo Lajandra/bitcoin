@@ -259,9 +259,24 @@ void BitcoinApplication::createPaymentServer()
 }
 #endif
 
-void BitcoinApplication::createOptionsModel(bool resetSettings)
+bool BitcoinApplication::createOptionsModel(bool resetSettings)
 {
-    optionsModel = new OptionsModel(node(), this, resetSettings);
+    optionsModel = new OptionsModel(node(), this);
+    if (resetSettings) {
+        optionsModel->Reset();
+    }
+    bilingual_str error;
+    if (!optionsModel->Init(error)) {
+        fs::path settings_path;
+        if (gArgs.GetSettingsPath(&settings_path)) {
+            error += Untranslated("\n");
+            error += strprintf(_("Settings file %s might be corrupt or invalid."), fs::quoted(settings_path));
+        }
+        InitError(error);
+        QMessageBox::critical(nullptr, PACKAGE_NAME, QString::fromStdString(error.translated));
+        return false;
+    }
+    return true;
 }
 
 void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
@@ -634,7 +649,9 @@ int GuiMain(int argc, char* argv[])
     GUIUtil::LogQtInfo();
     app.createNode(*init);
     // Load GUI settings from QSettings
-    app.createOptionsModel(gArgs.GetBoolArg("-resetguisettings", false));
+    if (!app.createOptionsModel(gArgs.GetBoolArg("-resetguisettings", false))) {
+        return EXIT_FAILURE;
+    }
 
     if (did_show_intro) {
         // Store intro dialog settings other than datadir (network specific)
