@@ -253,7 +253,7 @@ void BitcoinApplication::createPaymentServer()
 
 void BitcoinApplication::createOptionsModel(bool resetSettings)
 {
-    optionsModel = new OptionsModel(this, resetSettings);
+    optionsModel = new OptionsModel(node(), this, resetSettings);
 }
 
 void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
@@ -279,8 +279,15 @@ void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
 void BitcoinApplication::createNode(interfaces::Init& init)
 {
     assert(!m_node);
+<<<<<<< HEAD
     m_node = init.makeNode();
     if (optionsModel) optionsModel->setNode(*m_node);
+||||||| parent of 73b31c13d0a (Unify bitcoin-qt and bitcoind persistent settings)
+    m_node = &node;
+    if (optionsModel) optionsModel->setNode(*m_node);
+=======
+    m_node = &node;
+>>>>>>> 73b31c13d0a (Unify bitcoin-qt and bitcoind persistent settings)
     if (m_splash) m_splash->setNode(*m_node);
 }
 
@@ -615,6 +622,7 @@ int GuiMain(int argc, char* argv[])
     app.parameterSetup();
     GUIUtil::LogQtInfo();
     // Load GUI settings from QSettings
+    app.setNode(*node);
     app.createOptionsModel(gArgs.GetBoolArg("-resetguisettings", false));
 
     if (did_show_intro) {
@@ -625,8 +633,14 @@ int GuiMain(int argc, char* argv[])
     if (gArgs.GetBoolArg("-splash", DEFAULT_SPLASHSCREEN) && !gArgs.GetBoolArg("-min", false))
         app.createSplashScreen(networkStyle.data());
 
+<<<<<<< HEAD
     app.createNode(*init);
 
+||||||| parent of 73b31c13d0a (Unify bitcoin-qt and bitcoind persistent settings)
+    app.setNode(*node);
+
+=======
+>>>>>>> 73b31c13d0a (Unify bitcoin-qt and bitcoind persistent settings)
     int rv = EXIT_SUCCESS;
     try
     {
