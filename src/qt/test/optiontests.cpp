@@ -13,8 +13,43 @@
 
 #include <univalue.h>
 
+#include <fstream>
+
+OptionTests::OptionTests(interfaces::Node& node) : m_node(node)
+{
+    gArgs.LockSettings([&](util::Settings& s) { m_previous_settings = s; });
+}
+
+void OptionTests::resetArgs()
+{
+    gArgs.LockSettings([&](util::Settings& s) { s = m_previous_settings; });
+    gArgs.ClearPathCache();
+}
+
+void OptionTests::migrateSettings()
+{
+    resetArgs();
+
+    // Set legacy QSettings and verify that they get cleared and migrated to
+    // settings.json
+    QSettings settings;
+    settings.setValue("nDatabaseCache", 600);
+
+    settings.sync();
+
+    OptionsModel options(m_node);
+    QVERIFY(!settings.contains("nDatabaseCache"));
+
+    std::ifstream file(gArgs.GetDataDirNet() / "settings.json");
+    QCOMPARE(std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()).c_str(), "{\n"
+        "    \"dbcache\": 600\n"
+        "}\n");
+}
+
 void OptionTests::integerGetArgBug()
 {
+    resetArgs();
+
     // Test regression https://github.com/bitcoin/bitcoin/issues/24457. Ensure
     // that setting integer prune value doesn't cause an exception to be thrown
     // in the OptionsModel constructor
@@ -32,12 +67,12 @@ void OptionTests::integerGetArgBug()
 
 void OptionTests::parametersInteraction()
 {
+    resetArgs();
+
     // Test that the bug https://github.com/bitcoin-core/gui/issues/567 does not resurface.
     // It was fixed via https://github.com/bitcoin-core/gui/pull/568.
     // With fListen=false in ~/.config/Bitcoin/Bitcoin-Qt.conf and all else left as default,
     // bitcoin-qt should set both -listen and -listenonion to false and start successfully.
-    gArgs.ClearPathCache();
-
     gArgs.LockSettings([&](util::Settings& s) {
         s.forced_settings.erase("listen");
         s.forced_settings.erase("listenonion");
