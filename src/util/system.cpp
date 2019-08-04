@@ -294,6 +294,35 @@ fs::path StripRedundantLastElementsOfPath(const fs::path& path)
     return std::nullopt;
 }
 
+//! Return bool if setting is a bool or number, otherwise return default_value.
+//! Optionally coerce strings settings as well.
+static inline bool ValueToBool(const util::SettingsValue& value, bool default_value, bool coerce)
+{
+    if (coerce && value.isStr()) return InterpretBool(value.get_str());
+    return value.isBool() ? value.get_bool() : value.isNum() ? value.get_int64() != 0 : default_value;
+}
+
+//! Return int64 if setting is a number or bool, otherwise return default_value.
+//! Optionally coerce string settings as well.
+static inline int64_t ValueToInt64(const util::SettingsValue& value, int64_t default_value, bool coerce)
+{
+    if (coerce && value.isStr()) return LocaleIndependentAtoi<int64_t>(value.get_str());
+    return value.isNum() ? value.get_int64() : value.isFalse() ? 0 : value.isTrue() ? 1 : default_value;
+}
+
+//! Return string if setting is a nonempty string (-setting=abc), "" if setting
+//! is false (-nosetting), otherwise return default_value. Optionally coerce
+//! bool and number settings to strings as well.
+static inline std::string ValueToString(const util::SettingsValue& value,
+    const std::string& default_value,
+    bool coerce)
+{
+    if (coerce && value.isBool()) return value.get_bool() ? "1" : "0";
+    if (coerce && value.isNum()) return value.getValStr();
+    if (coerce && value.isStr()) return value.get_str();
+    return value.isStr() && !value.get_str().empty() ? value.get_str() : value.isFalse() ? "" : default_value;
+}
+
 namespace {
 fs::path StripRedundantLastElementsOfPath(const fs::path& path)
 {
@@ -446,6 +475,7 @@ std::optional<unsigned int> ArgsManager::GetArgFlags(const std::string& name) co
     return std::nullopt;
 }
 
+<<<<<<< HEAD
 fs::path ArgsManager::GetPathArg(std::string arg, const fs::path& default_value) const
 {
     if (IsArgNegated(arg)) return fs::path{};
@@ -456,6 +486,32 @@ fs::path ArgsManager::GetPathArg(std::string arg, const fs::path& default_value)
     return result.has_filename() ? result : result.parent_path();
 }
 
+||||||| parent of 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
+=======
+/**
+ * Check that arg has the right flags for use in a given context. Raises
+ * logic_error if this isn't the case, indicating the argument was registered
+ * with bad AddArg flags.
+ *
+ * Returns true if the arg is registered and has checking enabled. Returns false
+ * if the arg was never registered or checking was disabled with ALLOW_ANY.
+ */
+bool ArgsManager::CheckArgFlags(const std::string& name,
+    unsigned int require,
+    unsigned int forbid,
+    const char* context) const
+{
+    std::optional<unsigned int> flags = GetArgFlags(name);
+    if (!flags || *flags & ArgsManager::ALLOW_ANY) return false;
+    if ((*flags & require) != require || (*flags & forbid) != 0) {
+        throw std::logic_error(
+            strprintf("Bug: Can't call %s on arg %s registered with flags 0x%08x (requires 0x%x, disallows 0x%x)",
+                context, name, *flags, require, forbid));
+    }
+    return true;
+}
+
+>>>>>>> 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
 const fs::path& ArgsManager::GetBlocksDirPath() const
 {
     LOCK(cs_args);
@@ -546,9 +602,10 @@ std::optional<const ArgsManager::Command> ArgsManager::GetCommand() const
 
 std::vector<std::string> ArgsManager::GetArgs(const std::string& strArg) const
 {
+    bool coerce = !CheckArgFlags(strArg, /*require=*/ ALLOW_STRING | ALLOW_LIST, /*forbid=*/ 0, __func__);
     std::vector<std::string> result;
     for (const util::SettingsValue& value : GetSettingsList(strArg)) {
-        result.push_back(value.isFalse() ? "0" : value.isTrue() ? "1" : value.get_str());
+        result.push_back(ValueToString(value, "", coerce));
     }
     return result;
 }
@@ -659,6 +716,7 @@ bool ArgsManager::IsArgNegated(const std::string& strArg) const
 
 std::string ArgsManager::GetArg(const std::string& strArg, const std::string& strDefault) const
 {
+<<<<<<< HEAD
     return GetArg(strArg).value_or(strDefault);
 }
 
@@ -680,10 +738,18 @@ std::optional<std::string> SettingToString(const util::SettingsValue& value)
 std::string SettingToString(const util::SettingsValue& value, const std::string& strDefault)
 {
     return SettingToString(value).value_or(strDefault);
+||||||| parent of 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
+    const util::SettingsValue value = GetSetting(strArg);
+    return value.isNull() ? strDefault : value.isFalse() ? "0" : value.isTrue() ? "1" : value.get_str();
+=======
+    bool coerce = !CheckArgFlags(strArg, /*require=*/ ALLOW_STRING, /*forbid=*/ ALLOW_LIST, __func__);
+    return ValueToString(GetSetting(strArg), strDefault, coerce);
+>>>>>>> 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
 }
 
 int64_t ArgsManager::GetIntArg(const std::string& strArg, int64_t nDefault) const
 {
+<<<<<<< HEAD
     return GetIntArg(strArg).value_or(nDefault);
 }
 
@@ -705,10 +771,18 @@ std::optional<int64_t> SettingToInt(const util::SettingsValue& value)
 int64_t SettingToInt(const util::SettingsValue& value, int64_t nDefault)
 {
     return SettingToInt(value).value_or(nDefault);
+||||||| parent of 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
+    const util::SettingsValue value = GetSetting(strArg);
+    return value.isNull() ? nDefault : value.isFalse() ? 0 : value.isTrue() ? 1 : value.isNum() ? value.get_int64() : LocaleIndependentAtoi<int64_t>(value.get_str());
+=======
+    bool coerce = !CheckArgFlags(strArg, /*require=*/ ALLOW_INT, /*forbid=*/ ALLOW_LIST, __func__);
+    return ValueToInt64(GetSetting(strArg), nDefault, coerce);
+>>>>>>> 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
 }
 
 bool ArgsManager::GetBoolArg(const std::string& strArg, bool fDefault) const
 {
+<<<<<<< HEAD
     return GetBoolArg(strArg).value_or(fDefault);
 }
 
@@ -728,6 +802,13 @@ std::optional<bool> SettingToBool(const util::SettingsValue& value)
 bool SettingToBool(const util::SettingsValue& value, bool fDefault)
 {
     return SettingToBool(value).value_or(fDefault);
+||||||| parent of 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
+    const util::SettingsValue value = GetSetting(strArg);
+    return value.isNull() ? fDefault : value.isBool() ? value.get_bool() : InterpretBool(value.get_str());
+=======
+    bool coerce = !CheckArgFlags(strArg, /*require=*/ 0, /*forbid=*/ ALLOW_LIST, __func__);
+    return ValueToBool(GetSetting(strArg), fDefault, coerce);
+>>>>>>> 26f8e60dc6b (Update ArgManager GetArg helper methods to work better with ALLOW flags)
 }
 
 bool ArgsManager::SoftSetArg(const std::string& strArg, const std::string& strValue)
@@ -741,6 +822,7 @@ bool ArgsManager::SoftSetArg(const std::string& strArg, const std::string& strVa
 bool ArgsManager::SoftSetBoolArg(const std::string& strArg, bool fValue)
 {
     LOCK(cs_args);
+    CheckArgFlags(strArg, /*require=*/ ALLOW_BOOL, /*forbid=*/ ALLOW_LIST, __func__);
     if (IsArgSet(strArg)) return false;
     m_settings.forced_settings[SettingName(strArg)] = fValue;
     return true;
@@ -749,6 +831,7 @@ bool ArgsManager::SoftSetBoolArg(const std::string& strArg, bool fValue)
 void ArgsManager::ForceSetArg(const std::string& strArg, const std::string& strValue)
 {
     LOCK(cs_args);
+    CheckArgFlags(strArg, /*require=*/ ALLOW_STRING, /*forbid=*/ 0, __func__);
     m_settings.forced_settings[SettingName(strArg)] = strValue;
 }
 
@@ -1139,7 +1222,7 @@ std::string ArgsManager::GetChainName() const
             /* ignore_default_section_config= */ false,
             /*ignore_nonpersistent=*/false,
             /* get_chain_name= */ true);
-        return value.isNull() ? false : value.isBool() ? value.get_bool() : InterpretBool(value.get_str());
+        return ValueToBool(value, /* default= */ false, /* coerce= */ true);
     };
 
     const bool fRegTest = get_net("-regtest");
