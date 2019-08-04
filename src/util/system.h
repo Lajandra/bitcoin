@@ -163,6 +163,7 @@ public:
      * interpreted.
      */
     enum Flags : uint32_t {
+<<<<<<< HEAD
         ALLOW_ANY = 0x01,    //!< disable validation
         // ALLOW_BOOL = 0x02,   //!< unimplemented, draft implementation in #16545
         // ALLOW_INT = 0x04,    //!< unimplemented, draft implementation in #16545
@@ -170,6 +171,20 @@ public:
         // ALLOW_LIST = 0x10,   //!< unimplemented, draft implementation in #16545
         DISALLOW_NEGATION = 0x20, //! disallow -nofoo syntax
 
+||||||| parent of aa3dec078fc (refactor: Implement missing error checking for ArgsManager flags)
+        // Boolean options can accept negation syntax -noOPTION or -noOPTION=1
+        ALLOW_BOOL = 0x01,
+        ALLOW_INT = 0x02,
+        ALLOW_STRING = 0x04,
+        ALLOW_ANY = ALLOW_BOOL | ALLOW_INT | ALLOW_STRING,
+=======
+        ALLOW_ANY = 0x01,    //!< disable validation
+        ALLOW_BOOL = 0x02,   //!< allow -foo=1, -foo=0, -foo, -nofoo, -nofoo=1, and -foo=
+        ALLOW_INT = 0x04,    //!< allow -foo=123, -nofoo, -nofoo=1, and -foo=
+        ALLOW_STRING = 0x08, //!< allow -foo=abc, -nofoo, -nofoo=1, and -foo=
+        ALLOW_LIST = 0x10,   //!< allow multiple -foo=bar -foo=baz values
+
+>>>>>>> aa3dec078fc (refactor: Implement missing error checking for ArgsManager flags)
         DEBUG_ONLY = 0x100,
         /* Some options would cause cross-contamination if values for
          * mainnet were used while running on regtest/testnet (or vice-versa).
@@ -215,9 +230,10 @@ protected:
     /**
      * Get setting value.
      *
-     * Result will be null if setting was unset, true if "-setting" argument was passed
-     * false if "-nosetting" argument was passed, and a string if a "-setting=value"
-     * argument was passed.
+     * Result will be null if setting was unset, true if "-setting" argument was
+     * passed, false if "-nosetting" argument was passed, and a string, integer,
+     * or boolean depending on ALLOW_{BOOL|INT|STRING} flags if a
+     * "-setting=value" argument was passed.
      */
     util::SettingsValue GetSetting(const std::string& arg) const;
 
@@ -226,6 +242,23 @@ protected:
      */
     std::vector<util::SettingsValue> GetSettingsList(const std::string& arg) const;
 
+<<<<<<< HEAD
+||||||| parent of aa3dec078fc (refactor: Implement missing error checking for ArgsManager flags)
+public:
+=======
+    /**
+     * Check that arg has the right flags for use in a given context. Raises
+     * logic_error if this isn't the case, indicating the argument was
+     * registered with bad AddArg flags.
+     *
+     * Returns true if the arg is registered and has checking enabled. Returns
+     * false if the arg was never registered or checking was disabled with
+     * ALLOW_ANY.
+     */
+    bool CheckArgFlags(const std::string& name, unsigned int require, unsigned int forbid, const char* context) const;
+
+public:
+>>>>>>> aa3dec078fc (refactor: Implement missing error checking for ArgsManager flags)
     ArgsManager();
     ~ArgsManager();
 
