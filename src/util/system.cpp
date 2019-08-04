@@ -235,16 +235,72 @@ static std::optional<util::SettingsValue> InterpretValue(const KeyInfo& key, con
             error = strprintf("Negating of -%s is meaningless and therefore forbidden", key.name);
             return std::nullopt;
         }
+<<<<<<< HEAD
         // Double negatives like -nofoo=0 are supported (but discouraged)
         if (value && !InterpretBool(*value)) {
             LogPrintf("Warning: parsed potentially confusing double-negative -%s=%s\n", key.name, *value);
             return true;
+||||||| parent of ab41045f2e8 (Add ArgsManager flags to parse and validate settings on startup)
+        // Double negatives like -nofoo=0 are supported (but discouraged)
+        if (!InterpretBool(value)) {
+            LogPrintf("Warning: parsed potentially confusing double-negative -%s=%s\n", key.name, value);
+            return true;
+=======
+        if (flags & ArgsManager::ALLOW_ANY) {
+            // Double negatives like -nokey=0 are supported (but discouraged)
+            if (value && !InterpretBool(*value)) {
+                LogPrintf("Warning: parsed potentially confusing double-negative -%s=%s\n", key.name, *value);
+                return true;
+            }
+        } else if (value && *value != "1") {
+            error = strprintf("Can not negate -%s at the same time as setting value '%s'.", key.name, *value);
+            return std::nullopt;
+>>>>>>> ab41045f2e8 (Add ArgsManager flags to parse and validate settings on startup)
         }
         return false;
     }
+<<<<<<< HEAD
     if (!value && (flags & ArgsManager::DISALLOW_ELISION)) {
         error = strprintf("Can not set -%s with no value. Please specify value with -%s=value.", key.name, key.name);
         return std::nullopt;
+||||||| parent of ab41045f2e8 (Add ArgsManager flags to parse and validate settings on startup)
+    return value;
+}
+
+namespace {
+fs::path StripRedundantLastElementsOfPath(const fs::path& path)
+{
+    auto result = path;
+    while (fs::PathToString(result.filename()) == ".") {
+        result = result.parent_path();
+=======
+    if (value) {
+        int64_t parsed_int;
+        if ((flags & (ArgsManager::ALLOW_STRING | ArgsManager::ALLOW_ANY)) || value->empty()) return *value;
+        if ((flags & ArgsManager::ALLOW_INT) && ParseInt64(*value, &parsed_int)) return parsed_int;
+        if ((flags & ArgsManager::ALLOW_BOOL) && *value == "0") return false;
+        if ((flags & ArgsManager::ALLOW_BOOL) && *value == "1") return true;
+        error = strprintf("Can not set -%s value to '%s'", key.name, *value);
+    } else {
+        if (flags & ArgsManager::ALLOW_ANY) return "";
+        if (flags & ArgsManager::ALLOW_BOOL) return util::SettingsValue{true};
+        error = strprintf("Can not set -%s with no value", key.name);
+    }
+    error = strprintf("%s. %s", error,
+                      (flags & ArgsManager::ALLOW_STRING) ? "It must be set to a string." :
+                      (flags & ArgsManager::ALLOW_INT) ? "It must be set to an integer." :
+                      (flags & ArgsManager::ALLOW_BOOL) ? "It must be set to 0 or 1." :
+                      "It must be left unset.");
+    return std::nullopt;
+}
+
+namespace {
+fs::path StripRedundantLastElementsOfPath(const fs::path& path)
+{
+    auto result = path;
+    while (fs::PathToString(result.filename()) == ".") {
+        result = result.parent_path();
+>>>>>>> ab41045f2e8 (Add ArgsManager flags to parse and validate settings on startup)
     }
     return value ? *value : "";
 }
@@ -684,10 +740,10 @@ bool ArgsManager::SoftSetArg(const std::string& strArg, const std::string& strVa
 
 bool ArgsManager::SoftSetBoolArg(const std::string& strArg, bool fValue)
 {
-    if (fValue)
-        return SoftSetArg(strArg, std::string("1"));
-    else
-        return SoftSetArg(strArg, std::string("0"));
+    LOCK(cs_args);
+    if (IsArgSet(strArg)) return false;
+    m_settings.forced_settings[SettingName(strArg)] = fValue;
+    return true;
 }
 
 void ArgsManager::ForceSetArg(const std::string& strArg, const std::string& strValue)
@@ -726,6 +782,16 @@ void ArgsManager::AddArg(const std::string& name, const std::string& help, unsig
 
     if (flags & ArgsManager::NETWORK_ONLY) {
         m_network_only_args.emplace(arg_name);
+    }
+
+    if ((flags & ALLOW_ANY) && (flags & (ALLOW_BOOL | ALLOW_INT | ALLOW_STRING))) {
+        throw std::logic_error(strprintf("Bug: bad %s flags. ALLOW_{BOOL|INT|STRING} flags would have no effect with "
+                                         "ALLOW_ANY present (ALLOW_ANY disables validation)", arg_name));
+    }
+
+    if ((flags & ALLOW_INT) && (flags & ALLOW_STRING)) {
+        throw std::logic_error(strprintf("Bug: bad %s flags. ALLOW_INT would have no effect with ALLOW_STRING present "
+                                         "(any valid integer is also a valid string)", arg_name));
     }
 }
 
@@ -946,10 +1012,20 @@ bool ArgsManager::ReadConfigStream(std::istream& stream, const std::string& file
         KeyInfo key = InterpretKey(option.first);
         std::optional<unsigned int> flags = GetArgFlags('-' + key.name);
         if (flags) {
+<<<<<<< HEAD
             std::optional<util::SettingsValue> value = InterpretValue(key, &option.second, *flags, error);
             if (!value) {
+||||||| parent of ab41045f2e8 (Add ArgsManager flags to parse and validate settings on startup)
+            std::optional<util::SettingsValue> value = InterpretValue(key, option.second, *flags, error);
+            if (!value) {
+=======
+            if (!(*flags & (ALLOW_ANY | ALLOW_LIST)) && m_settings.ro_config[key.section].count(key.name)) {
+                error = strprintf("Multiple values specified for -%s in same section of config file.", key.name);
+>>>>>>> ab41045f2e8 (Add ArgsManager flags to parse and validate settings on startup)
                 return false;
             }
+            std::optional<util::SettingsValue> value = InterpretValue(key, &option.second, *flags, error);
+            if (!value) return false;
             m_settings.ro_config[key.section][key.name].push_back(*value);
         } else {
             if (ignore_invalid_keys) {
