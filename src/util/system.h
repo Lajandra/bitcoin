@@ -163,12 +163,28 @@ public:
      * interpreted.
      */
     enum Flags : uint32_t {
+<<<<<<< HEAD
         ALLOW_ANY = 0x01,         //!< disable validation
         // ALLOW_BOOL = 0x02,     //!< unimplemented, draft implementation in #16545
         // ALLOW_INT = 0x04,      //!< unimplemented, draft implementation in #16545
         // ALLOW_STRING = 0x08,   //!< unimplemented, draft implementation in #16545
         // ALLOW_LIST = 0x10,     //!< unimplemented, draft implementation in #16545
         DISALLOW_NEGATION = 0x20, //!< disallow -nofoo syntax
+||||||| parent of c7ba71fb916 (refactor: Implement missing error checking for ArgsManager flags)
+        ALLOW_ANY = 0x01,    //!< disable validation
+        // ALLOW_BOOL = 0x02,   //!< unimplemented, draft implementation in #16545
+        // ALLOW_INT = 0x04,    //!< unimplemented, draft implementation in #16545
+        // ALLOW_STRING = 0x08, //!< unimplemented, draft implementation in #16545
+        // ALLOW_LIST = 0x10,   //!< unimplemented, draft implementation in #16545
+        DISALLOW_NEGATION = 0x20, //! disallow -nofoo syntax
+=======
+        ALLOW_ANY = 0x01,    //!< disable validation
+        ALLOW_BOOL = 0x02,   //!< allow -foo=1, -foo=0, -foo, -nofoo, -nofoo=1, and -foo=
+        ALLOW_INT = 0x04,    //!< allow -foo=123, -nofoo, -nofoo=1, and -foo=
+        ALLOW_STRING = 0x08, //!< allow -foo=abc, -nofoo, -nofoo=1, and -foo=
+        ALLOW_LIST = 0x10,   //!< allow multiple -foo=bar -foo=baz values
+        DISALLOW_NEGATION = 0x20, //! disallow -nofoo syntax
+>>>>>>> c7ba71fb916 (refactor: Implement missing error checking for ArgsManager flags)
 
         DEBUG_ONLY = 0x100,
         /* Some options would cause cross-contamination if values for
@@ -202,6 +218,8 @@ protected:
     mutable fs::path m_cached_datadir_path GUARDED_BY(cs_args);
     mutable fs::path m_cached_network_datadir_path GUARDED_BY(cs_args);
 
+    bool CheckArgFlags(const std::string& name, unsigned int require, unsigned int forbid, const char* context) const;
+
     [[nodiscard]] bool ReadConfigStream(std::istream& stream, const std::string& filepath, std::string& error, bool ignore_invalid_keys = false);
 
     /**
@@ -215,9 +233,10 @@ protected:
     /**
      * Get setting value.
      *
-     * Result will be null if setting was unset, true if "-setting" argument was passed
-     * false if "-nosetting" argument was passed, and a string if a "-setting=value"
-     * argument was passed.
+     * Result will be null if setting was unset, true if "-setting" argument was
+     * passed, false if "-nosetting" argument was passed, and a string, integer,
+     * or boolean depending on ALLOW_{BOOL|INT|STRING} flags if a
+     * "-setting=value" argument was passed.
      */
     util::SettingsValue GetSetting(const std::string& arg) const;
 
