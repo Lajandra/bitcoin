@@ -489,6 +489,7 @@ public:
 
 static void MaybeUpdateHeights(const ArgsManager& args, Consensus::Params& consensus)
 {
+<<<<<<< HEAD
     for (const std::string& arg : args.GetArgs("-testactivationheight")) {
         const auto found{arg.find('@')};
         if (found == std::string::npos) {
@@ -512,6 +513,17 @@ static void MaybeUpdateHeights(const ArgsManager& args, Consensus::Params& conse
             consensus.CSVHeight = int{height};
         } else {
             throw std::runtime_error(strprintf("Invalid name (%s) for -testactivationheight=name@height.", arg));
+||||||| parent of 5b474968048 (scripted-diff: Rename overloaded int GetArg to GetIntArg)
+    if (args.IsArgSet("-segwitheight")) {
+        int64_t height = args.GetArg("-segwitheight", consensus.SegwitHeight);
+        if (height < 0 || height >= std::numeric_limits<int>::max()) {
+            throw std::runtime_error(strprintf("Activation height %ld for segwit is out of valid range.", height));
+=======
+    if (args.IsArgSet("-segwitheight")) {
+        int64_t height = args.GetIntArg("-segwitheight", consensus.SegwitHeight);
+        if (height < 0 || height >= std::numeric_limits<int>::max()) {
+            throw std::runtime_error(strprintf("Activation height %ld for segwit is out of valid range.", height));
+>>>>>>> 5b474968048 (scripted-diff: Rename overloaded int GetArg to GetIntArg)
         }
     }
 }
