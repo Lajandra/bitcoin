@@ -24,6 +24,7 @@ namespace init {
 void AddLoggingArgs(ArgsManager& argsman)
 {
     argsman.AddArg("-debuglogfile=<file>", strprintf("Specify location of debug log file. Relative paths will be prefixed by a net-specific datadir location. (-nodebuglogfile to disable; default: %s)", DEFAULT_DEBUGLOGFILE), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+<<<<<<< HEAD
     argsman.AddArg("-debug=<category>", "Output debug and trace logging (default: -nodebug, supplying <category> is optional). "
         "If <category> is not supplied or if <category> = 1, output all debug and trace logging. <category> can be: " + LogInstance().LogCategoriesString() + ". This option can be specified multiple times to output multiple categories.",
         ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
@@ -32,6 +33,15 @@ void AddLoggingArgs(ArgsManager& argsman)
 ||||||| parent of 616e9a7be4e (scripted-diff: Add ALLOW_LIST flag to arguments retrieved with GetArgs)
     argsman.AddArg("-debugexclude=<category>", "Exclude debugging information for a category. Can be used in conjunction with -debug=1 to output debug logs for all categories except the specified category. This option can be specified multiple times to exclude multiple categories.", ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
 =======
+||||||| parent of 38586d6d556 (refactor: Fix more ALLOW_LIST arguments)
+    argsman.AddArg("-debug=<category>", "Output debugging information (default: -nodebug, supplying <category> is optional). "
+        "If <category> is not supplied or if <category> = 1, output all debugging information. <category> can be: " + LogInstance().LogCategoriesString() + ". This option can be specified multiple times to output multiple categories.",
+        ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
+=======
+    argsman.AddArg("-debug=<category>", "Output debugging information (default: -nodebug, supplying <category> is optional). "
+        "If <category> is not supplied or if <category> = 1, output all debugging information. <category> can be: " + LogInstance().LogCategoriesString() + ". This option can be specified multiple times to output multiple categories.",
+        ArgsManager::ALLOW_ANY | ArgsManager::ALLOW_LIST, OptionsCategory::DEBUG_TEST);
+>>>>>>> 38586d6d556 (refactor: Fix more ALLOW_LIST arguments)
     argsman.AddArg("-debugexclude=<category>", "Exclude debugging information for a category. Can be used in conjunction with -debug=1 to output debug logs for all categories except the specified category. This option can be specified multiple times to exclude multiple categories.", ArgsManager::ALLOW_ANY | ArgsManager::ALLOW_LIST, OptionsCategory::DEBUG_TEST);
 >>>>>>> 616e9a7be4e (scripted-diff: Add ALLOW_LIST flag to arguments retrieved with GetArgs)
     argsman.AddArg("-logips", strprintf("Include IP addresses in debug output (default: %u)", DEFAULT_LOGIPS), ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
