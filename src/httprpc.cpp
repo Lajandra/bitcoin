@@ -250,7 +250,15 @@ static bool InitRPCAuthentication()
         LogPrintf("Config options rpcuser and rpcpassword will soon be deprecated. Locally-run instances may remove rpcuser to use cookie-based auth, or may be replaced with rpcauth. Please see share/rpcauth for rpcauth auth generation.\n");
         strRPCUserColonPass = gArgs.GetArg("-rpcuser", "") + ":" + gArgs.GetArg("-rpcpassword", "");
     }
+<<<<<<< HEAD
     if (gArgs.GetArg("-rpcauth", "") != "") {
+||||||| parent of ab589824d3f (Always reject empty -rpcauth="" arguments)
+    if (gArgs.GetArg("-rpcauth","") != "")
+    {
+=======
+    if (!gArgs.GetArgs("-rpcauth").empty())
+    {
+>>>>>>> ab589824d3f (Always reject empty -rpcauth="" arguments)
         LogPrintf("Using rpcauth authentication.\n");
         for (const std::string& rpcauth : gArgs.GetArgs("-rpcauth")) {
             std::vector<std::string> fields{SplitString(rpcauth, ':')};
