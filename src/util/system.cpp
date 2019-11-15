@@ -1058,7 +1058,13 @@ bool ArgsManager::ReadConfigStream(std::istream& stream, const std::string& file
         KeyInfo key = InterpretKey(option.first);
         std::optional<unsigned int> flags = GetArgFlags('-' + key.name);
         if (flags) {
+<<<<<<< HEAD
             if (TypedArg(*flags) && !(*flags & ALLOW_LIST) && m_settings.ro_config[key.section].count(key.name)) {
+||||||| parent of 5686d12b41f (util: Forbid ambiguous multiple assignments in config file)
+            if (!(*flags & (ALLOW_ANY | ALLOW_LIST)) && m_settings.ro_config[key.section].count(key.name)) {
+=======
+            if (!(*flags & ALLOW_LIST) && m_settings.ro_config[key.section].count(key.name)) {
+>>>>>>> 5686d12b41f (util: Forbid ambiguous multiple assignments in config file)
                 error = strprintf("Multiple values specified for -%s in same section of config file.", key.name);
                 return false;
             }
