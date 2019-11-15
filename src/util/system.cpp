@@ -968,8 +968,16 @@ bool ArgsManager::ReadConfigStream(std::istream& stream, const std::string& file
         KeyInfo key = InterpretKey(option.first);
         std::optional<unsigned int> flags = GetArgFlags('-' + key.name);
         if (flags) {
+<<<<<<< HEAD
             if (!(*flags & (ALLOW_ANY | ALLOW_LIST)) && m_settings.ro_config[key.section].count(key.name)) {
                 error = strprintf("Multiple values specified for -%s in same section of config file.", key.name);
+||||||| parent of ea8c24753e0 (util: Forbid ambiguous multiple assignments in config file)
+            if (!(*flags & (ALLOW_ANY | ALLOW_LIST)) && m_settings.ro_config[section].count(key)) {
+                error = strprintf("Multiple values specified for -%s in same section of config file.", key);
+=======
+            if (!(*flags & ALLOW_LIST) && m_settings.ro_config[section].count(key)) {
+                error = strprintf("Multiple values specified for -%s in same section of config file.", key);
+>>>>>>> ea8c24753e0 (util: Forbid ambiguous multiple assignments in config file)
                 return false;
             }
             std::optional<util::SettingsValue> value = InterpretValue(key, &option.second, *flags, error);
