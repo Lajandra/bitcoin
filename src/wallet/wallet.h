@@ -208,11 +208,20 @@ private:
     std::string m_label;
 public:
     std::string purpose;
+    //! Whether coins with this address have previously been spent. Set when the
+    //! the wallet avoid_reuse option is enabled and this is an IsMine address
+    //! that has already received funds and spent them. This is used during coin
+    //! selection to increase privacy by not creating different transactions
+    //! that spend from the same addresses.
+    bool previously_spent{false};
+    //! Map containing data about previously generated receive requests
+    //! requesting funds to be sent to this address. Only present for IsMine
+    //! addresses. Map keys are decimal numbers uniquely identifying each
+    //! request, and map values are serialized RecentRequestEntry objects
+    //! containing BIP21 URI information including message and amount.
+    std::map<std::string, std::string> receive_requests{};
 
     CAddressBookData() : purpose("unknown") {}
-
-    typedef std::map<std::string, std::string> StringMap;
-    StringMap destdata;
 
     bool IsChange() const { return m_change; }
     const std::string& GetLabel() const { return m_label; }
@@ -715,6 +724,7 @@ public:
 
     std::vector<std::string> GetAddressReceiveRequests() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool SetAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id, const std::string& value) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     unsigned int GetKeyPoolSize() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
