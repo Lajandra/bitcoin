@@ -656,12 +656,12 @@ void BerkeleyDatabase::ReloadDbEnv()
     env->ReloadDbEnv();
 }
 
-BerkeleyCursor::BerkeleyCursor(BerkeleyDatabase& database)
+BerkeleyCursor::BerkeleyCursor(BerkeleyDatabase& database, BerkeleyBatch* batch)
 {
     if (!database.m_db.get()) {
         throw std::runtime_error(STR_INTERNAL_BUG("BerkeleyDatabase does not exist"));
     }
-    int ret = database.m_db->cursor(nullptr, &m_cursor, 0);
+    int ret = database.m_db->cursor(batch ? batch->txn() : nullptr, &m_cursor, 0);
     if (ret != 0) {
         throw std::runtime_error(STR_INTERNAL_BUG(strprintf("BDB Cursor could not be created. Returned %d", ret)));
     }
@@ -806,6 +806,22 @@ bool BerkeleyBatch::HasKey(DataStream&& key)
 
     int ret = pdb->exists(activeTxn, datKey, 0);
     return ret == 0;
+}
+
+bool BerkeleyBatch::ErasePrefix(Span<std::byte> prefix)
+{
+    if (!TxnBegin()) return false;
+    auto cursor = std::make_unique<BerkeleyCursor>(m_database, this);
+    Dbt prefix_key(prefix.data(), prefix.size()), prefix_value;
+    int ret = cursor->dbc()->get(&prefix_key, &prefix_value, DB_SET_RANGE);
+    for (int flag = DB_CURRENT; ret == 0; flag = DB_NEXT) {
+        SafeDbt key, value;
+        ret = cursor->dbc()->get(key, value, flag);
+        if (ret != 0 || key.get_size() < prefix.size() || memcmp(key.get_data(), prefix.data(), prefix.size()) != 0) break;
+        ret = cursor->dbc()->del(0);
+    }
+    cursor.reset();
+    return TxnCommit() && (ret == 0 || ret == DB_NOTFOUND);
 }
 
 void BerkeleyDatabase::AddRef()
