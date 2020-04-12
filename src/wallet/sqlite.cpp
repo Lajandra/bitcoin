@@ -120,6 +120,7 @@ SQLiteDatabase::SQLiteDatabase(const fs::path& dir_path, const fs::path& file_pa
 
 void SQLiteBatch::SetupSQLStatements()
 {
+<<<<<<< HEAD
     const std::vector<std::pair<sqlite3_stmt**, const char*>> statements{
         {&m_read_stmt, "SELECT value FROM main WHERE key = ?"},
         {&m_insert_stmt, "INSERT INTO main VALUES(?, ?)"},
@@ -134,6 +135,62 @@ void SQLiteBatch::SetupSQLStatements()
                 throw std::runtime_error(strprintf(
                     "SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
             }
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    int res;
+    if (!m_read_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "SELECT value FROM main WHERE key = ?", -1, &m_read_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_insert_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "INSERT INTO main VALUES(?, ?)", -1, &m_insert_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_overwrite_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "INSERT or REPLACE into main values(?, ?)", -1, &m_overwrite_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_delete_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "DELETE FROM main WHERE key = ?", -1, &m_delete_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_cursor_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "SELECT key, value FROM main", -1, &m_cursor_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements : %s\n", sqlite3_errstr(res)));
+=======
+    int res;
+    if (!m_read_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "SELECT value FROM main WHERE key = ?", -1, &m_read_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_insert_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "INSERT INTO main VALUES(?, ?)", -1, &m_insert_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_overwrite_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "INSERT or REPLACE into main values(?, ?)", -1, &m_overwrite_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_delete_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "DELETE FROM main WHERE key = ?", -1, &m_delete_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_delete_prefix_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "DELETE FROM main WHERE instr(?, key) = 1", -1, &m_delete_prefix_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
+        }
+    }
+    if (!m_cursor_stmt) {
+        if ((res = sqlite3_prepare_v2(m_database.m_db, "SELECT key, value FROM main", -1, &m_cursor_stmt, nullptr)) != SQLITE_OK) {
+            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements : %s\n", sqlite3_errstr(res)));
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
         }
     }
 }
@@ -385,6 +442,57 @@ void SQLiteBatch::Close()
         }
         *stmt_prepared = nullptr;
     }
+<<<<<<< HEAD
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    ret = sqlite3_finalize(m_insert_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize insert statement: %s\n", sqlite3_errstr(ret));
+    }
+    ret = sqlite3_finalize(m_overwrite_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize overwrite statement: %s\n", sqlite3_errstr(ret));
+    }
+    ret = sqlite3_finalize(m_delete_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize delete statement: %s\n", sqlite3_errstr(ret));
+    }
+    ret = sqlite3_finalize(m_cursor_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize cursor statement: %s\n", sqlite3_errstr(ret));
+    }
+    m_read_stmt = nullptr;
+    m_insert_stmt = nullptr;
+    m_overwrite_stmt = nullptr;
+    m_delete_stmt = nullptr;
+    m_cursor_stmt = nullptr;
+=======
+    ret = sqlite3_finalize(m_insert_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize insert statement: %s\n", sqlite3_errstr(ret));
+    }
+    ret = sqlite3_finalize(m_overwrite_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize overwrite statement: %s\n", sqlite3_errstr(ret));
+    }
+    ret = sqlite3_finalize(m_delete_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize delete statement: %s\n", sqlite3_errstr(ret));
+    }
+    ret = sqlite3_finalize(m_delete_prefix_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize delete prefix statement: %s\n", sqlite3_errstr(ret));
+    }
+    ret = sqlite3_finalize(m_cursor_stmt);
+    if (ret != SQLITE_OK) {
+        LogPrintf("SQLiteBatch: Batch closed but could not finalize cursor statement: %s\n", sqlite3_errstr(ret));
+    }
+    m_read_stmt = nullptr;
+    m_insert_stmt = nullptr;
+    m_overwrite_stmt = nullptr;
+    m_delete_stmt = nullptr;
+    m_delete_prefix_stmt = nullptr;
+    m_cursor_stmt = nullptr;
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 }
 
 bool SQLiteBatch::ReadKey(DataStream&& key, DataStream& value)
@@ -441,25 +549,75 @@ bool SQLiteBatch::WriteKey(DataStream&& key, DataStream&& value, bool overwrite)
     return res == SQLITE_DONE;
 }
 
+<<<<<<< HEAD
 bool SQLiteBatch::EraseKey(DataStream&& key)
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+bool SQLiteBatch::EraseKey(CDataStream&& key)
+=======
+bool SQLiteBatch::ExecStatement(sqlite3_stmt* stmt, Span<const uint8_t> blob)
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 {
     if (!m_database.m_db) return false;
-    assert(m_delete_stmt);
+    assert(stmt);
 
     // Bind: leftmost parameter in statement is index 1
+<<<<<<< HEAD
     if (!BindBlobToStatement(m_delete_stmt, 1, key, "key")) return false;
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    int res = sqlite3_bind_blob(m_delete_stmt, 1, key.data(), key.size(), SQLITE_STATIC);
+    if (res != SQLITE_OK) {
+        LogPrintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(res));
+        sqlite3_clear_bindings(m_delete_stmt);
+        sqlite3_reset(m_delete_stmt);
+        return false;
+    }
+=======
+    int res = sqlite3_bind_blob(stmt, 1, blob.data(), blob.size(), SQLITE_STATIC);
+    if (res != SQLITE_OK) {
+        LogPrintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(res));
+        sqlite3_clear_bindings(stmt);
+        sqlite3_reset(stmt);
+        return false;
+    }
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 
     // Execute
+<<<<<<< HEAD
     int res = sqlite3_step(m_delete_stmt);
     sqlite3_clear_bindings(m_delete_stmt);
     sqlite3_reset(m_delete_stmt);
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    res = sqlite3_step(m_delete_stmt);
+    sqlite3_clear_bindings(m_delete_stmt);
+    sqlite3_reset(m_delete_stmt);
+=======
+    res = sqlite3_step(stmt);
+    sqlite3_clear_bindings(stmt);
+    sqlite3_reset(stmt);
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
     if (res != SQLITE_DONE) {
         LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
     }
     return res == SQLITE_DONE;
 }
 
+<<<<<<< HEAD
 bool SQLiteBatch::HasKey(DataStream&& key)
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+bool SQLiteBatch::HasKey(CDataStream&& key)
+=======
+bool SQLiteBatch::EraseKey(CDataStream&& key)
+{
+    return ExecStatement(m_delete_stmt, key);
+}
+
+bool SQLiteBatch::ErasePrefix(Span<uint8_t> prefix)
+{
+    return ExecStatement(m_delete_prefix_stmt, prefix);
+}
+
+bool SQLiteBatch::HasKey(CDataStream&& key)
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 {
     if (!m_database.m_db) return false;
     assert(m_read_stmt);

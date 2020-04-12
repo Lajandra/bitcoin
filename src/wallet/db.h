@@ -111,7 +111,19 @@ public:
         return HasKey(std::move(ssKey));
     }
 
+<<<<<<< HEAD
     virtual std::unique_ptr<DatabaseCursor> GetNewCursor() = 0;
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    virtual bool StartCursor() = 0;
+    virtual bool ReadAtCursor(CDataStream& ssKey, CDataStream& ssValue, bool& complete) = 0;
+    virtual void CloseCursor() = 0;
+=======
+    virtual bool ErasePrefix(Span<uint8_t> prefix) = 0;
+
+    virtual bool StartCursor() = 0;
+    virtual bool ReadAtCursor(CDataStream& ssKey, CDataStream& ssValue, bool& complete) = 0;
+    virtual void CloseCursor() = 0;
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
     virtual bool TxnBegin() = 0;
     virtual bool TxnCommit() = 0;
     virtual bool TxnAbort() = 0;
@@ -182,10 +194,23 @@ class DummyCursor : public DatabaseCursor
 class DummyBatch : public DatabaseBatch
 {
 private:
+<<<<<<< HEAD
     bool ReadKey(DataStream&& key, DataStream& value) override { return true; }
     bool WriteKey(DataStream&& key, DataStream&& value, bool overwrite = true) override { return true; }
     bool EraseKey(DataStream&& key) override { return true; }
     bool HasKey(DataStream&& key) override { return true; }
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    bool ReadKey(CDataStream&& key, CDataStream& value) override { return true; }
+    bool WriteKey(CDataStream&& key, CDataStream&& value, bool overwrite=true) override { return true; }
+    bool EraseKey(CDataStream&& key) override { return true; }
+    bool HasKey(CDataStream&& key) override { return true; }
+=======
+    bool ReadKey(CDataStream&& key, CDataStream& value) override { return true; }
+    bool WriteKey(CDataStream&& key, CDataStream&& value, bool overwrite=true) override { return true; }
+    bool EraseKey(CDataStream&& key) override { return true; }
+    bool HasKey(CDataStream&& key) override { return true; }
+    bool ErasePrefix(Span<uint8_t> prefix) override { return true; }
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 
 public:
     void Flush() override {}

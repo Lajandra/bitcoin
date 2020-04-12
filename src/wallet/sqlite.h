@@ -36,13 +36,34 @@ private:
     sqlite3_stmt* m_insert_stmt{nullptr};
     sqlite3_stmt* m_overwrite_stmt{nullptr};
     sqlite3_stmt* m_delete_stmt{nullptr};
+<<<<<<< HEAD
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    sqlite3_stmt* m_cursor_stmt{nullptr};
+=======
+    sqlite3_stmt* m_delete_prefix_stmt{nullptr};
+    sqlite3_stmt* m_cursor_stmt{nullptr};
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 
     void SetupSQLStatements();
+    bool ExecStatement(sqlite3_stmt* stmt, Span<const uint8_t> blob);
 
+<<<<<<< HEAD
     bool ReadKey(DataStream&& key, DataStream& value) override;
     bool WriteKey(DataStream&& key, DataStream&& value, bool overwrite = true) override;
     bool EraseKey(DataStream&& key) override;
     bool HasKey(DataStream&& key) override;
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    bool ReadKey(CDataStream&& key, CDataStream& value) override;
+    bool WriteKey(CDataStream&& key, CDataStream&& value, bool overwrite = true) override;
+    bool EraseKey(CDataStream&& key) override;
+    bool HasKey(CDataStream&& key) override;
+=======
+    bool ReadKey(CDataStream&& key, CDataStream& value) override;
+    bool WriteKey(CDataStream&& key, CDataStream&& value, bool overwrite = true) override;
+    bool EraseKey(CDataStream&& key) override;
+    bool HasKey(CDataStream&& key) override;
+    bool ErasePrefix(Span<uint8_t> prefix) override;
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 
 public:
     explicit SQLiteBatch(SQLiteDatabase& database);

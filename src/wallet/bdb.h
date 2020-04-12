@@ -201,10 +201,23 @@ public:
 class BerkeleyBatch : public DatabaseBatch
 {
 private:
+<<<<<<< HEAD
     bool ReadKey(DataStream&& key, DataStream& value) override;
     bool WriteKey(DataStream&& key, DataStream&& value, bool overwrite = true) override;
     bool EraseKey(DataStream&& key) override;
     bool HasKey(DataStream&& key) override;
+||||||| parent of 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
+    bool ReadKey(CDataStream&& key, CDataStream& value) override;
+    bool WriteKey(CDataStream&& key, CDataStream&& value, bool overwrite = true) override;
+    bool EraseKey(CDataStream&& key) override;
+    bool HasKey(CDataStream&& key) override;
+=======
+    bool ReadKey(CDataStream&& key, CDataStream& value) override;
+    bool WriteKey(CDataStream&& key, CDataStream&& value, bool overwrite = true) override;
+    bool EraseKey(CDataStream&& key) override;
+    bool HasKey(CDataStream&& key) override;
+    bool ErasePrefix(Span<uint8_t> prefix) override;
+>>>>>>> 7a05b1dee2f (refactor: Remove CAddressBookData::destdata)
 
 protected:
     Db* pdb{nullptr};
