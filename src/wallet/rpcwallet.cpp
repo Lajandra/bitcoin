@@ -96,14 +96,16 @@ bool GetWalletNameFromJSONRPCRequest(const JSONRPCRequest& request, std::string&
 std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& request)
 {
     CHECK_NONFATAL(request.mode == JSONRPCRequest::EXECUTE);
+    WalletContext& context = EnsureWalletContext(request.context);
+
     std::string wallet_name;
     if (GetWalletNameFromJSONRPCRequest(request, wallet_name)) {
-        std::shared_ptr<CWallet> pwallet = GetWallet(wallet_name);
+        std::shared_ptr<CWallet> pwallet = GetWallet(context, wallet_name);
         if (!pwallet) throw JSONRPCError(RPC_WALLET_NOT_FOUND, "Requested wallet does not exist or is not loaded");
         return pwallet;
     }
 
-    std::vector<std::shared_ptr<CWallet>> wallets = GetWallets();
+    std::vector<std::shared_ptr<CWallet>> wallets = GetWallets(context);
     if (wallets.size() == 1) {
         return wallets[0];
     }
@@ -2562,7 +2564,8 @@ static RPCHelpMan listwallets()
 {
     UniValue obj(UniValue::VARR);
 
-    for (const std::shared_ptr<CWallet>& wallet : GetWallets()) {
+    WalletContext& context = EnsureWalletContext(request.context);
+    for (const std::shared_ptr<CWallet>& wallet : GetWallets(context)) {
         LOCK(wallet->cs_wallet);
         obj.push_back(wallet->GetName());
     }
@@ -2629,7 +2632,59 @@ static RPCHelpMan loadwallet()
     WalletContext& context = EnsureWalletContext(request.context);
     const std::string name(request.params[0].get_str());
 
+<<<<<<< HEAD
     auto [wallet, warnings] = LoadWalletHelper(context, request.params[1], name);
+||||||| parent of 6e6a7e1fe87 (refactor: remove ::vpwallets and related global variables)
+    DatabaseOptions options;
+    DatabaseStatus status;
+    options.require_existing = true;
+    bilingual_str error;
+    std::vector<bilingual_str> warnings;
+    std::optional<bool> load_on_start = request.params[1].isNull() ? std::nullopt : std::optional<bool>(request.params[1].get_bool());
+    std::shared_ptr<CWallet> const wallet = LoadWallet(*context.chain, name, load_on_start, options, status, error, warnings);
+    if (!wallet) {
+        // Map bad format to not found, since bad format is returned when the
+        // wallet directory exists, but doesn't contain a data file.
+        RPCErrorCode code = RPC_WALLET_ERROR;
+        switch (status) {
+            case DatabaseStatus::FAILED_NOT_FOUND:
+            case DatabaseStatus::FAILED_BAD_FORMAT:
+                code = RPC_WALLET_NOT_FOUND;
+                break;
+            case DatabaseStatus::FAILED_ALREADY_LOADED:
+                code = RPC_WALLET_ALREADY_LOADED;
+                break;
+            default: // RPC_WALLET_ERROR is returned for all other cases.
+                break;
+        }
+        throw JSONRPCError(code, error.original);
+    }
+=======
+    DatabaseOptions options;
+    DatabaseStatus status;
+    options.require_existing = true;
+    bilingual_str error;
+    std::vector<bilingual_str> warnings;
+    std::optional<bool> load_on_start = request.params[1].isNull() ? std::nullopt : std::optional<bool>(request.params[1].get_bool());
+    std::shared_ptr<CWallet> const wallet = LoadWallet(context, name, load_on_start, options, status, error, warnings);
+    if (!wallet) {
+        // Map bad format to not found, since bad format is returned when the
+        // wallet directory exists, but doesn't contain a data file.
+        RPCErrorCode code = RPC_WALLET_ERROR;
+        switch (status) {
+            case DatabaseStatus::FAILED_NOT_FOUND:
+            case DatabaseStatus::FAILED_BAD_FORMAT:
+                code = RPC_WALLET_NOT_FOUND;
+                break;
+            case DatabaseStatus::FAILED_ALREADY_LOADED:
+                code = RPC_WALLET_ALREADY_LOADED;
+                break;
+            default: // RPC_WALLET_ERROR is returned for all other cases.
+                break;
+        }
+        throw JSONRPCError(code, error.original);
+    }
+>>>>>>> 6e6a7e1fe87 (refactor: remove ::vpwallets and related global variables)
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("name", wallet->GetName());
@@ -2788,7 +2843,7 @@ static RPCHelpMan createwallet()
     options.create_passphrase = passphrase;
     bilingual_str error;
     std::optional<bool> load_on_start = request.params[6].isNull() ? std::nullopt : std::optional<bool>(request.params[6].get_bool());
-    std::shared_ptr<CWallet> wallet = CreateWallet(*context.chain, request.params[0].get_str(), load_on_start, options, status, error, warnings);
+    std::shared_ptr<CWallet> wallet = CreateWallet(context, request.params[0].get_str(), load_on_start, options, status, error, warnings);
     if (!wallet) {
         RPCErrorCode code = status == DatabaseStatus::FAILED_ENCRYPT ? RPC_WALLET_ENCRYPTION_FAILED : RPC_WALLET_ERROR;
         throw JSONRPCError(code, error.original);
@@ -2892,7 +2947,8 @@ static RPCHelpMan unloadwallet()
         wallet_name = request.params[0].get_str();
     }
 
-    std::shared_ptr<CWallet> wallet = GetWallet(wallet_name);
+    WalletContext& context = EnsureWalletContext(request.context);
+    std::shared_ptr<CWallet> wallet = GetWallet(context, wallet_name);
     if (!wallet) {
         throw JSONRPCError(RPC_WALLET_NOT_FOUND, "Requested wallet does not exist or is not loaded");
     }
@@ -2902,7 +2958,7 @@ static RPCHelpMan unloadwallet()
     // is destroyed (see CheckUniqueFileid).
     std::vector<bilingual_str> warnings;
     std::optional<bool> load_on_start = request.params[1].isNull() ? std::nullopt : std::optional<bool>(request.params[1].get_bool());
-    if (!RemoveWallet(wallet, load_on_start, warnings)) {
+    if (!RemoveWallet(context, wallet, load_on_start, warnings)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requested wallet already unloaded");
     }
 
