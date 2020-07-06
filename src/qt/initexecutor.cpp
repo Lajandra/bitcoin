@@ -54,12 +54,12 @@ void InitExecutor::initialize()
     });
 }
 
-void InitExecutor::shutdown()
+void InitExecutor::shutdown(bool node_shutdown)
 {
-    GUIUtil::ObjectInvoke(&m_context, [this] {
+    GUIUtil::ObjectInvoke(&m_context, [this, node_shutdown] {
         try {
             qDebug() << "Running Shutdown in thread";
-            m_node.appShutdown();
+            if (node_shutdown) m_node.appShutdown();
             qDebug() << "Shutdown finished";
             Q_EMIT shutdownResult();
         } catch (const std::exception& e) {
