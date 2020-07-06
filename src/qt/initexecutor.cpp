@@ -54,8 +54,9 @@ void InitExecutor::initialize()
     });
 }
 
-void InitExecutor::shutdown()
+void InitExecutor::shutdown(bool node_shutdown)
 {
+<<<<<<< HEAD
     GUIUtil::ObjectInvoke(&m_context, [this] {
         try {
             qDebug() << "Running Shutdown in thread";
@@ -68,4 +69,27 @@ void InitExecutor::shutdown()
             handleRunawayException(nullptr);
         }
     });
+||||||| parent of c997272eb0a (multiprocess: Add bitcoin-gui -ipcconnect option)
+    try {
+        qDebug() << __func__ << ": Running Shutdown in thread";
+        m_node.appShutdown();
+        qDebug() << __func__ << ": Shutdown finished";
+        Q_EMIT shutdownResult();
+    } catch (const std::exception& e) {
+        handleRunawayException(&e);
+    } catch (...) {
+        handleRunawayException(nullptr);
+    }
+=======
+    try {
+        qDebug() << __func__ << ": Running Shutdown in thread";
+        if (node_shutdown) m_node.appShutdown();
+        qDebug() << __func__ << ": Shutdown finished";
+        Q_EMIT shutdownResult();
+    } catch (const std::exception& e) {
+        handleRunawayException(&e);
+    } catch (...) {
+        handleRunawayException(nullptr);
+    }
+>>>>>>> c997272eb0a (multiprocess: Add bitcoin-gui -ipcconnect option)
 }
