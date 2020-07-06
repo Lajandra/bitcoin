@@ -32,6 +32,60 @@ class Init;
 } // namespace interfaces
 
 
+<<<<<<< HEAD
+||||||| parent of 4dc8af04400 (multiprocess: Add bitcoin-gui -ipcconnect option)
+/** Class encapsulating Bitcoin Core startup and shutdown.
+ * Allows running startup and shutdown in a different thread from the UI thread.
+ */
+class BitcoinCore: public QObject
+{
+    Q_OBJECT
+public:
+    explicit BitcoinCore(interfaces::Node& node);
+
+public Q_SLOTS:
+    void initialize();
+    void shutdown();
+
+Q_SIGNALS:
+    void initializeResult(bool success, interfaces::BlockAndHeaderTipInfo tip_info);
+    void shutdownResult();
+    void runawayException(const QString &message);
+
+private:
+    /// Pass fatal exception message to UI thread
+    void handleRunawayException(const std::exception *e);
+
+    interfaces::Node& m_node;
+};
+
+=======
+/** Class encapsulating Bitcoin Core startup and shutdown.
+ * Allows running startup and shutdown in a different thread from the UI thread.
+ */
+class BitcoinCore: public QObject
+{
+    Q_OBJECT
+public:
+    explicit BitcoinCore(interfaces::Node& node);
+
+public Q_SLOTS:
+    void initialize();
+    void shutdown(bool node_shutdown);
+
+Q_SIGNALS:
+    void initializeResult(bool success, interfaces::BlockAndHeaderTipInfo tip_info);
+    void shutdownResult();
+    void runawayException(const QString &message);
+
+private:
+    /// Pass fatal exception message to UI thread
+    void handleRunawayException(const std::exception *e);
+
+    interfaces::Node& m_node;
+};
+
+>>>>>>> 4dc8af04400 (multiprocess: Add bitcoin-gui -ipcconnect option)
 /** Main Bitcoin application object */
 class BitcoinApplication: public QApplication
 {
@@ -74,6 +128,7 @@ public:
     void setupPlatformStyle();
 
     interfaces::Node& node() const { assert(m_node); return *m_node; }
+    bool nodeExternal() const { return m_node_external; }
 
 public Q_SLOTS:
     void initializeResult(bool success, interfaces::BlockAndHeaderTipInfo tip_info);
@@ -89,7 +144,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void requestedInitialize();
-    void requestedShutdown();
+    void requestedShutdown(bool node_shutdown);
     void splashFinished();
     void windowShown(BitcoinGUI* window);
 
@@ -108,6 +163,10 @@ private:
     std::unique_ptr<QWidget> shutdownWindow;
     SplashScreen* m_splash = nullptr;
     std::unique_ptr<interfaces::Node> m_node;
+    //! Whether node is external to the application and running in a
+    //! pre-existing process, or internal and initialized and shutdown when the
+    //! application is.
+    bool m_node_external = false;
 
     void startThread();
 };
