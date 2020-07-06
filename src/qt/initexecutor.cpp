@@ -54,12 +54,18 @@ void InitExecutor::initialize()
     });
 }
 
-void InitExecutor::shutdown()
+void InitExecutor::shutdown(bool node_shutdown)
 {
+<<<<<<< HEAD
     QMetaObject::invokeMethod(&m_context, [this] {
+||||||| parent of f8d4a158052 (multiprocess: Add bitcoin-gui -ipcconnect option)
+    GUIUtil::ObjectInvoke(&m_context, [this] {
+=======
+    GUIUtil::ObjectInvoke(&m_context, [this, node_shutdown] {
+>>>>>>> f8d4a158052 (multiprocess: Add bitcoin-gui -ipcconnect option)
         try {
             qDebug() << "Running Shutdown in thread";
-            m_node.appShutdown();
+            if (node_shutdown) m_node.appShutdown();
             qDebug() << "Shutdown finished";
             Q_EMIT shutdownResult();
         } catch (const std::exception& e) {
