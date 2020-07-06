@@ -51,11 +51,11 @@ void InitExecutor::initialize()
     }
 }
 
-void InitExecutor::shutdown()
+void InitExecutor::shutdown(bool node_shutdown)
 {
     try {
         qDebug() << __func__ << ": Running Shutdown in thread";
-        m_node.appShutdown();
+        if (node_shutdown) m_node.appShutdown();
         qDebug() << __func__ << ": Shutdown finished";
         Q_EMIT shutdownResult();
     } catch (const std::exception& e) {
