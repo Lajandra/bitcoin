@@ -403,6 +403,7 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     }
     // Process expected parameters.
     int hole = 0;
+    int initial_hole_size = 0;
     for (const std::string &argNamePattern: argNames) {
         std::vector<std::string> vargNames = SplitString(argNamePattern, '|');
         auto fr = argsIn.end();
@@ -424,7 +425,24 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
             argsIn.erase(fr);
         } else {
             hole += 1;
+            if (out.params.empty()) initial_hole_size = hole;
         }
+    }
+    // If leftover "args" param was found, use it as a source of positional
+    // arguments and add named arguments after. This is a convenience for
+    // clients that want to pass a combination of named and positional
+    // arguments, described in doc/JSON-RPC-interface.md#parameter-passing
+    auto positional_args = argsIn.find("args");
+    if (positional_args != argsIn.end() && positional_args->second->isArray()) {
+        if (initial_hole_size < std::min<int>(positional_args->second->size(), argNames.size())) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter " + argNames[initial_hole_size] + " specified twice both as positional and named argument");
+        }
+        UniValue named_args = out.params;
+        out.params = *positional_args->second;
+        for (size_t i = out.params.size(); i < named_args.size(); ++i) {
+            out.params.push_back(named_args[i]);
+        }
+        argsIn.erase(positional_args);
     }
     // If there are still arguments in the argsIn map, this is an error.
     if (!argsIn.empty()) {
