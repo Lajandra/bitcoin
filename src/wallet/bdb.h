@@ -43,15 +43,23 @@ class BerkeleyDatabase;
 class BerkeleyEnvironment
 {
 private:
-    bool fDbEnvInit;
-    bool fMockDb;
+    bool fDbEnvInit = false;
+    bool fMockDb = false;
     // Don't change into fs::path, as that can result in
     // shutdown problems/crashes caused by a static initialized internal pointer.
     std::string strPath;
 
 public:
+<<<<<<< HEAD
     std::unique_ptr<DbEnv> dbenv;
     std::map<fs::path, std::reference_wrapper<BerkeleyDatabase>> m_databases;
+||||||| parent of 104514bce18 (attempt fix memory leak)
+    std::unique_ptr<DbEnv> dbenv;
+    std::map<std::string, std::reference_wrapper<BerkeleyDatabase>> m_databases;
+=======
+    DbEnv m_db_env{DB_CXX_NO_EXCEPTIONS};
+    std::map<std::string, std::reference_wrapper<BerkeleyDatabase>> m_databases;
+>>>>>>> 104514bce18 (attempt fix memory leak)
     std::unordered_map<std::string, WalletDatabaseFileId> m_fileids;
     std::condition_variable_any m_db_in_use;
     bool m_use_shared_memory;
@@ -59,7 +67,6 @@ public:
     explicit BerkeleyEnvironment(const fs::path& env_directory, bool use_shared_memory);
     BerkeleyEnvironment();
     ~BerkeleyEnvironment();
-    void Reset();
 
     bool IsMock() const { return fMockDb; }
     bool IsInitialized() const { return fDbEnvInit; }
@@ -76,7 +83,7 @@ public:
     DbTxn* TxnBegin(int flags = DB_TXN_WRITE_NOSYNC)
     {
         DbTxn* ptxn = nullptr;
-        int ret = dbenv->txn_begin(nullptr, &ptxn, flags);
+        int ret = m_db_env.txn_begin(nullptr, &ptxn, flags);
         if (!ptxn || ret != 0)
             return nullptr;
         return ptxn;
