@@ -52,7 +52,7 @@ bool RecoverDatabaseFile(const ArgsManager& args, const fs::path& file_path, bil
     int64_t now = GetTime();
     std::string newFilename = strprintf("%s.%d.bak", filename, now);
 
-    int result = env->m_db_env.dbrename(nullptr, filename.c_str(), nullptr,
+    int result = env->dbenv->dbrename(nullptr, filename.c_str(), nullptr,
                                        newFilename.c_str(), DB_AUTO_COMMIT);
     if (result != 0)
     {
@@ -70,7 +70,7 @@ bool RecoverDatabaseFile(const ArgsManager& args, const fs::path& file_path, bil
 
     std::stringstream strDump;
 
-    Db db(&env->m_db_env, 0);
+    Db db(env->dbenv.get(), 0);
     result = db.verify(newFilename.c_str(), nullptr, &strDump, DB_SALVAGE | DB_AGGRESSIVE);
     if (result == DB_VERIFY_BAD) {
         warnings.push_back(Untranslated("Salvage: Database salvage found errors, all data may not be recoverable."));
@@ -122,12 +122,18 @@ bool RecoverDatabaseFile(const ArgsManager& args, const fs::path& file_path, bil
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     std::unique_ptr<Db> pdbCopy = std::make_unique<Db>(env->dbenv.get(), 0);
 ||||||| parent of 104514bce18 (attempt fix memory leak)
     std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(env->dbenv.get(), 0);
 =======
     std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(&env->m_db_env, 0);
 >>>>>>> 104514bce18 (attempt fix memory leak)
+||||||| parent of fc2c15bf885 (basically revert but remove reset mehtod)
+    std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(&env->m_db_env, 0);
+=======
+    std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(env->dbenv.get(), 0);
+>>>>>>> fc2c15bf885 (basically revert but remove reset mehtod)
     int ret = pdbCopy->open(nullptr,               // Txn pointer
                             filename.c_str(),   // Filename
                             "main",             // Logical db name

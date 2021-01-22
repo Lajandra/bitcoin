@@ -94,9 +94,9 @@ void BerkeleyEnvironment::Close()
     }
 
     FILE* error_file = nullptr;
-    m_db_env.get_errfile(&error_file);
+    dbenv->get_errfile(&error_file);
 
-    int ret = m_db_env.close(0);
+    int ret = dbenv->close(0);
     if (ret != 0)
         LogPrintf("BerkeleyEnvironment::Close: Error %d closing database environment: %s\n", ret, DbEnv::strerror(ret));
     if (!fMockDb)
@@ -163,6 +163,7 @@ bool BerkeleyEnvironment::Open(bilingual_str& err)
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     dbenv->set_lg_dir(fs::PathToString(pathLogDir).c_str());
     dbenv->set_cachesize(0, 0x100000, 1); // 1 MiB should be enough for just the wallet
     dbenv->set_lg_bsize(0x10000);
@@ -199,6 +200,31 @@ bool BerkeleyEnvironment::Open(bilingual_str& err)
     m_db_env.log_set_config(DB_LOG_AUTO_REMOVE, 1);
     int ret = m_db_env.open(strPath.c_str(),
 >>>>>>> 104514bce18 (attempt fix memory leak)
+||||||| parent of fc2c15bf885 (basically revert but remove reset mehtod)
+    m_db_env.set_lg_dir(pathLogDir.string().c_str());
+    m_db_env.set_cachesize(0, 0x100000, 1); // 1 MiB should be enough for just the wallet
+    m_db_env.set_lg_bsize(0x10000);
+    m_db_env.set_lg_max(1048576);
+    m_db_env.set_lk_max_locks(40000);
+    m_db_env.set_lk_max_objects(40000);
+    m_db_env.set_errfile(fsbridge::fopen(pathErrorFile, "a")); /// debug
+    m_db_env.set_flags(DB_AUTO_COMMIT, 1);
+    m_db_env.set_flags(DB_TXN_WRITE_NOSYNC, 1);
+    m_db_env.log_set_config(DB_LOG_AUTO_REMOVE, 1);
+    int ret = m_db_env.open(strPath.c_str(),
+=======
+    dbenv->set_lg_dir(pathLogDir.string().c_str());
+    dbenv->set_cachesize(0, 0x100000, 1); // 1 MiB should be enough for just the wallet
+    dbenv->set_lg_bsize(0x10000);
+    dbenv->set_lg_max(1048576);
+    dbenv->set_lk_max_locks(40000);
+    dbenv->set_lk_max_objects(40000);
+    dbenv->set_errfile(fsbridge::fopen(pathErrorFile, "a")); /// debug
+    dbenv->set_flags(DB_AUTO_COMMIT, 1);
+    dbenv->set_flags(DB_TXN_WRITE_NOSYNC, 1);
+    dbenv->log_set_config(DB_LOG_AUTO_REMOVE, 1);
+    int ret = dbenv->open(strPath.c_str(),
+>>>>>>> fc2c15bf885 (basically revert but remove reset mehtod)
                          DB_CREATE |
                              DB_INIT_LOCK |
                              DB_INIT_LOG |
@@ -210,7 +236,7 @@ bool BerkeleyEnvironment::Open(bilingual_str& err)
                          S_IRUSR | S_IWUSR);
     if (ret != 0) {
         LogPrintf("BerkeleyEnvironment::Open: Error %d opening database environment: %s\n", ret, DbEnv::strerror(ret));
-        int ret2 = m_db_env.close(0);
+        int ret2 = dbenv->close(0);
         if (ret2 != 0) {
             LogPrintf("BerkeleyEnvironment::Open: Error %d closing failed database environment: %s\n", ret2, DbEnv::strerror(ret2));
         }
@@ -239,14 +265,14 @@ BerkeleyEnvironment::BerkeleyEnvironment() : m_use_shared_memory(false)
 {
     LogPrint(BCLog::WALLETDB, "BerkeleyEnvironment::MakeMock\n");
 
-    m_db_env.set_cachesize(1, 0, 1);
-    m_db_env.set_lg_bsize(10485760 * 4);
-    m_db_env.set_lg_max(10485760);
-    m_db_env.set_lk_max_locks(10000);
-    m_db_env.set_lk_max_objects(10000);
-    m_db_env.set_flags(DB_AUTO_COMMIT, 1);
-    m_db_env.log_set_config(DB_LOG_IN_MEMORY, 1);
-    int ret = m_db_env.open(nullptr,
+    dbenv->set_cachesize(1, 0, 1);
+    dbenv->set_lg_bsize(10485760 * 4);
+    dbenv->set_lg_max(10485760);
+    dbenv->set_lk_max_locks(10000);
+    dbenv->set_lk_max_objects(10000);
+    dbenv->set_flags(DB_AUTO_COMMIT, 1);
+    dbenv->log_set_config(DB_LOG_IN_MEMORY, 1);
+    int ret = dbenv->open(nullptr,
                          DB_CREATE |
                              DB_INIT_LOCK |
                              DB_INIT_LOG |
@@ -319,6 +345,7 @@ bool BerkeleyDatabase::Verify(bilingual_str& errorStr)
         assert(m_refcount == 0);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         Db db(env->dbenv.get(), 0);
         const std::string strFile = fs::PathToString(m_filename);
 ||||||| parent of 104514bce18 (attempt fix memory leak)
@@ -326,6 +353,11 @@ bool BerkeleyDatabase::Verify(bilingual_str& errorStr)
 =======
         Db db(&env->m_db_env, 0);
 >>>>>>> 104514bce18 (attempt fix memory leak)
+||||||| parent of fc2c15bf885 (basically revert but remove reset mehtod)
+        Db db(&env->m_db_env, 0);
+=======
+        Db db(env->dbenv.get(), 0);
+>>>>>>> fc2c15bf885 (basically revert but remove reset mehtod)
         int result = db.verify(strFile.c_str(), nullptr, nullptr, 0);
         if (result != 0) {
             errorStr = strprintf(_("%s corrupt. Try using the wallet tool bitcoin-wallet to salvage or restoring a backup."), fs::quoted(fs::PathToString(file_path)));
@@ -338,10 +370,10 @@ bool BerkeleyDatabase::Verify(bilingual_str& errorStr)
 
 void BerkeleyEnvironment::CheckpointLSN(const std::string& strFile)
 {
-    m_db_env.txn_checkpoint(0, 0, 0);
+    dbenv->txn_checkpoint(0, 0, 0);
     if (fMockDb)
         return;
-    m_db_env.lsn_reset(strFile.c_str(), 0);
+    dbenv->lsn_reset(strFile.c_str(), 0);
 }
 
 BerkeleyDatabase::~BerkeleyDatabase()
@@ -380,6 +412,7 @@ void BerkeleyDatabase::Open()
         if (m_db == nullptr) {
             int ret;
 <<<<<<< HEAD
+<<<<<<< HEAD
             std::unique_ptr<Db> pdb_temp = std::make_unique<Db>(env->dbenv.get(), 0);
             const std::string strFile = fs::PathToString(m_filename);
 ||||||| parent of 104514bce18 (attempt fix memory leak)
@@ -387,6 +420,11 @@ void BerkeleyDatabase::Open()
 =======
             std::unique_ptr<Db> pdb_temp = MakeUnique<Db>(&env->m_db_env, 0);
 >>>>>>> 104514bce18 (attempt fix memory leak)
+||||||| parent of fc2c15bf885 (basically revert but remove reset mehtod)
+            std::unique_ptr<Db> pdb_temp = MakeUnique<Db>(&env->m_db_env, 0);
+=======
+            std::unique_ptr<Db> pdb_temp = MakeUnique<Db>(env->dbenv.get(), 0);
+>>>>>>> fc2c15bf885 (basically revert but remove reset mehtod)
 
             bool fMockDb = env->IsMock();
             if (fMockDb) {
@@ -431,12 +469,18 @@ void BerkeleyBatch::Flush()
 
     if (env) { // env is nullptr for dummy databases (i.e. in tests). Don't actually flush if env is nullptr so we don't segfault
 <<<<<<< HEAD
+<<<<<<< HEAD
         env->dbenv->txn_checkpoint(nMinutes ? m_database.m_max_log_mb * 1024 : 0, nMinutes, 0);
 ||||||| parent of 104514bce18 (attempt fix memory leak)
         env->dbenv->txn_checkpoint(nMinutes ? gArgs.GetArg("-dblogsize", DEFAULT_WALLET_DBLOGSIZE) * 1024 : 0, nMinutes, 0);
 =======
         env->m_db_env.txn_checkpoint(nMinutes ? gArgs.GetArg("-dblogsize", DEFAULT_WALLET_DBLOGSIZE) * 1024 : 0, nMinutes, 0);
 >>>>>>> 104514bce18 (attempt fix memory leak)
+||||||| parent of fc2c15bf885 (basically revert but remove reset mehtod)
+        env->m_db_env.txn_checkpoint(nMinutes ? gArgs.GetArg("-dblogsize", DEFAULT_WALLET_DBLOGSIZE) * 1024 : 0, nMinutes, 0);
+=======
+        env->dbenv->txn_checkpoint(nMinutes ? gArgs.GetArg("-dblogsize", DEFAULT_WALLET_DBLOGSIZE) * 1024 : 0, nMinutes, 0);
+>>>>>>> fc2c15bf885 (basically revert but remove reset mehtod)
     }
 }
 
@@ -502,6 +546,7 @@ void BerkeleyEnvironment::ReloadDbEnv()
     }
     // Reset the environment
     Flush(true); // This will flush and close the environment
+    dbenv = std::make_unique<DbEnv>(DB_CXX_NO_EXCEPTIONS);
     fDbEnvInit = false;
     fMockDb = false;
     bilingual_str open_err;
@@ -526,12 +571,18 @@ bool BerkeleyDatabase::Rewrite(const char* pszSkip)
                 { // surround usage of db with extra {}
                     BerkeleyBatch db(*this, true);
 <<<<<<< HEAD
+<<<<<<< HEAD
                     std::unique_ptr<Db> pdbCopy = std::make_unique<Db>(env->dbenv.get(), 0);
 ||||||| parent of 104514bce18 (attempt fix memory leak)
                     std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(env->dbenv.get(), 0);
 =======
                     std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(&env->m_db_env, 0);
 >>>>>>> 104514bce18 (attempt fix memory leak)
+||||||| parent of fc2c15bf885 (basically revert but remove reset mehtod)
+                    std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(&env->m_db_env, 0);
+=======
+                    std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(env->dbenv.get(), 0);
+>>>>>>> fc2c15bf885 (basically revert but remove reset mehtod)
 
                     int ret = pdbCopy->open(nullptr,               // Txn pointer
                                             strFileRes.c_str(), // Filename
@@ -582,10 +633,10 @@ bool BerkeleyDatabase::Rewrite(const char* pszSkip)
                     }
                 }
                 if (fSuccess) {
-                    Db dbA(&env->m_db_env, 0);
+                    Db dbA(env->dbenv.get(), 0);
                     if (dbA.remove(strFile.c_str(), nullptr, 0))
                         fSuccess = false;
-                    Db dbB(&env->m_db_env, 0);
+                    Db dbB(env->dbenv.get(), 0);
                     if (dbB.rename(strFileRes.c_str(), nullptr, strFile.c_str(), 0))
                         fSuccess = false;
                 }
@@ -619,10 +670,10 @@ void BerkeleyEnvironment::Flush(bool fShutdown)
                 // Move log data to the dat file
                 CloseDb(filename);
                 LogPrint(BCLog::WALLETDB, "BerkeleyEnvironment::Flush: %s checkpoint\n", strFile);
-                m_db_env.txn_checkpoint(0, 0, 0);
+                dbenv->txn_checkpoint(0, 0, 0);
                 LogPrint(BCLog::WALLETDB, "BerkeleyEnvironment::Flush: %s detach\n", strFile);
                 if (!fMockDb)
-                    m_db_env.lsn_reset(strFile.c_str(), 0);
+                    dbenv->lsn_reset(strFile.c_str(), 0);
                 LogPrint(BCLog::WALLETDB, "BerkeleyEnvironment::Flush: %s closed\n", strFile);
                 nRefCount = -1;
             } else {
@@ -633,7 +684,7 @@ void BerkeleyEnvironment::Flush(bool fShutdown)
         if (fShutdown) {
             char** listp;
             if (no_dbs_accessed) {
-                m_db_env.log_archive(&listp, DB_ARCH_REMOVE);
+                dbenv->log_archive(&listp, DB_ARCH_REMOVE);
                 Close();
                 if (!fMockDb) {
                     fs::remove_all(fs::PathFromString(strPath) / "database");
