@@ -11,7 +11,12 @@
 #include <util/string.h>
 #include <util/system.h>
 #include <util/translation.h>
+<<<<<<< HEAD
 #include <wallet/context.h>
+||||||| parent of 67f8c262281 (refactor: Detach wallet transaction methods (followup for move-only))
+=======
+#include <wallet/spend.h>
+>>>>>>> 67f8c262281 (refactor: Detach wallet transaction methods (followup for move-only))
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 
