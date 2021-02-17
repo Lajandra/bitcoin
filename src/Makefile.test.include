@@ -152,7 +152,12 @@ BITCOIN_TESTS =\
 if ENABLE_WALLET
 BITCOIN_TESTS += \
   wallet/test/psbt_wallet_tests.cpp \
+<<<<<<< HEAD
   wallet/test/spend_tests.cpp \
+||||||| parent of 8f25d3a6b7a (refactor: Make CWalletTx sync state type-safe)
+=======
+  wallet/test/wallet_transaction_tests.cpp \
+>>>>>>> 8f25d3a6b7a (refactor: Make CWalletTx sync state type-safe)
   wallet/test/wallet_tests.cpp \
   wallet/test/walletdb_tests.cpp \
   wallet/test/wallet_crypto_tests.cpp \
