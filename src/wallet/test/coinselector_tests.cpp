@@ -71,12 +71,18 @@ static void add_coin(std::vector<COutput>& coins, CWallet& wallet, const CAmount
         // so stop vin being empty, and cache a non-zero Debit to fake out IsFromMe()
         tx.vin.resize(1);
     }
+<<<<<<< HEAD
     uint256 txid = tx.GetHash();
 
     LOCK(wallet.cs_wallet);
     auto ret = wallet.mapWallet.emplace(std::piecewise_construct, std::forward_as_tuple(txid), std::forward_as_tuple(MakeTransactionRef(std::move(tx))));
     assert(ret.second);
     CWalletTx& wtx = (*ret.first).second;
+||||||| parent of 541d5f5c775 (refactor: Make CWalletTx sync state type-safe)
+    CWalletTx* wtx = wallet.AddToWallet(MakeTransactionRef(std::move(tx)), /* confirm= */ {});
+=======
+    CWalletTx* wtx = wallet.AddToWallet(MakeTransactionRef(std::move(tx)), TxStateInactive{});
+>>>>>>> 541d5f5c775 (refactor: Make CWalletTx sync state type-safe)
     if (fIsFromMe)
     {
         wtx.m_amounts[CWalletTx::DEBIT].Set(ISMINE_SPENDABLE, 1);
