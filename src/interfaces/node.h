@@ -5,8 +5,15 @@
 #ifndef BITCOIN_INTERFACES_NODE_H
 #define BITCOIN_INTERFACES_NODE_H
 
+<<<<<<< HEAD
 #include <consensus/amount.h>
 #include <external_signer.h>
+||||||| parent of c74e5706a46 (multiprocess: Run external signer in wallet not node process)
+#include <amount.h>     // For CAmount
+#include <external_signer.h>
+=======
+#include <amount.h>     // For CAmount
+>>>>>>> c74e5706a46 (multiprocess: Run external signer in wallet not node process)
 #include <net.h>        // For NodeId
 #include <net_types.h>  // For banmap_t
 #include <netaddress.h> // For Network
@@ -110,9 +117,6 @@ public:
 
     //! Disconnect node by id.
     virtual bool disconnectById(NodeId id) = 0;
-
-    //! List external signers
-    virtual std::vector<ExternalSigner> externalSigners() = 0;
 
     //! Get total bytes recv.
     virtual int64_t getTotalBytesRecv() = 0;
