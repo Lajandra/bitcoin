@@ -33,9 +33,18 @@ const char* EXE_NAME = "bitcoin-node";
 class BitcoinNodeInit : public interfaces::Init
 {
 public:
+<<<<<<< HEAD
     BitcoinNodeInit(node::NodeContext& node, const char* arg0)
         : m_node(node),
           m_ipc(interfaces::MakeIpc(EXE_NAME, arg0, *this))
+||||||| parent of 4d15cb696f9 (multiprocess: Add debug.log .wallet/.gui suffixes)
+    BitcoinNodeInit(NodeContext& node, const char* arg0)
+        : m_node(node),
+          m_ipc(interfaces::MakeIpc(EXE_NAME, arg0, *this))
+=======
+    BitcoinNodeInit(NodeContext& node, const char* arg0)
+        : m_node(node), m_ipc(interfaces::MakeIpc(EXE_NAME, "", arg0, *this))
+>>>>>>> 4d15cb696f9 (multiprocess: Add debug.log .wallet/.gui suffixes)
     {
         m_node.args = &gArgs;
         m_node.init = this;
@@ -43,7 +52,7 @@ public:
         // spawned by a bitcoin-gui process, after the ArgsManager configuration
         // is transferred from the parent process to the child process.
         m_ipc->context().init_process = [this] {
-            InitLogging(*Assert(m_node.args));
+            InitLogging(*Assert(m_node.args), m_ipc->logSuffix());
             InitParameterInteraction(*Assert(m_node.args));
         };
         ipc::capnp::SetupNodeServer(m_ipc->context());
