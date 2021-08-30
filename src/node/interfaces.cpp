@@ -13,6 +13,8 @@
 #include <init.h>
 #include <interfaces/chain.h>
 #include <interfaces/handler.h>
+#include <interfaces/init.h>
+#include <interfaces/ipc.h>
 #include <interfaces/node.h>
 #include <interfaces/wallet.h>
 #include <kernel/chain.h>
@@ -86,8 +88,20 @@ class NodeImpl : public Node
 {
 public:
     explicit NodeImpl(NodeContext& context) { setContext(&context); }
+<<<<<<< HEAD
     void initLogging() override { InitLogging(args()); }
     void initParameterInteraction() override { InitParameterInteraction(args()); }
+||||||| parent of e5da10ead3d (multiprocess: Add debug.log .wallet/.gui suffixes)
+    void initLogging() override { InitLogging(*Assert(m_context->args)); }
+    void initParameterInteraction() override { InitParameterInteraction(*Assert(m_context->args)); }
+=======
+    void initLogging() override
+    {
+        interfaces::Ipc* ipc = m_context->init->ipc();
+        InitLogging(*Assert(m_context->args), ipc ? ipc->logSuffix() : nullptr);
+    }
+    void initParameterInteraction() override { InitParameterInteraction(*Assert(m_context->args)); }
+>>>>>>> e5da10ead3d (multiprocess: Add debug.log .wallet/.gui suffixes)
     bilingual_str getWarnings() override { return GetWarnings(true); }
     uint32_t getLogCategories() override { return LogInstance().GetCategoryMask(); }
     bool baseInitialize() override
