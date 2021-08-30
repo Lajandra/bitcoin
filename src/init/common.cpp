@@ -78,10 +78,17 @@ void AddLoggingArgs(ArgsManager& argsman)
     argsman.AddArg("-shrinkdebugfile", "Shrink debug.log file on client startup (default: 1 when no -debug)", ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
 }
 
-void SetLoggingOptions(const ArgsManager& args)
+void SetLoggingOptions(const ArgsManager& args, const char* log_suffix)
 {
     LogInstance().m_print_to_file = !args.IsArgNegated("-debuglogfile");
+<<<<<<< HEAD
     LogInstance().m_file_path = AbsPathForConfigVal(fs::PathFromString(args.GetArg("-debuglogfile", DEFAULT_DEBUGLOGFILE)));
+||||||| parent of 333b908ad54 (multiprocess: Add debug.log .wallet/.gui suffixes)
+    LogInstance().m_file_path = AbsPathForConfigVal(args.GetArg("-debuglogfile", DEFAULT_DEBUGLOGFILE));
+=======
+    LogInstance().m_file_path = AbsPathForConfigVal(args.GetArg("-debuglogfile", DEFAULT_DEBUGLOGFILE));
+    if (log_suffix && LogInstance().m_file_path != "/dev/null") LogInstance().m_file_path += log_suffix;
+>>>>>>> 333b908ad54 (multiprocess: Add debug.log .wallet/.gui suffixes)
     LogInstance().m_print_to_console = args.GetBoolArg("-printtoconsole", !args.GetBoolArg("-daemon", false));
     LogInstance().m_log_timestamps = args.GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
     LogInstance().m_log_time_micros = args.GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
