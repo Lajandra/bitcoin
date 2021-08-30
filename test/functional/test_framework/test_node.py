@@ -395,17 +395,30 @@ class TestNode():
             return dl.tell()
 
     @contextlib.contextmanager
-    def assert_debug_log(self, expected_msgs, unexpected_msgs=None, timeout=2):
+    def assert_debug_log(self, expected_msgs, unexpected_msgs=None, timeout=2, wallet=False):
         if unexpected_msgs is None:
             unexpected_msgs = []
         time_end = time.time() + timeout * self.timeout_factor
+<<<<<<< HEAD
         prev_size = self.debug_log_bytes()
+||||||| parent of 14ea759e0a9 (multiprocess: Add debug.log .wallet/.gui suffixes)
+        with open(self.debug_log_path, encoding='utf-8') as dl:
+            dl.seek(0, 2)
+            prev_size = dl.tell()
+=======
+        debug_log = str(self.debug_log_path)
+        if wallet and os.path.exists(debug_log + ".wallet"):
+            debug_log += ".wallet"
+        with open(debug_log, encoding='utf-8') as dl:
+            dl.seek(0, 2)
+            prev_size = dl.tell()
+>>>>>>> 14ea759e0a9 (multiprocess: Add debug.log .wallet/.gui suffixes)
 
         yield
 
         while True:
             found = True
-            with open(self.debug_log_path, encoding='utf-8') as dl:
+            with open(debug_log, encoding='utf-8') as dl:
                 dl.seek(prev_size)
                 log = dl.read()
             print_log = " - " + "\n - ".join(log.splitlines())
