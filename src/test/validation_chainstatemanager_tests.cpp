@@ -154,6 +154,70 @@ BOOST_AUTO_TEST_CASE(chainstatemanager_rebalance_caches)
     BOOST_CHECK_CLOSE(c2.m_coinsdb_cache_size_bytes, max_cache * 0.95, 1);
 }
 
+<<<<<<< HEAD
+||||||| parent of a1b9c0f2a55 (refactor: Block unsafe fs::path std::string conversion calls)
+auto NoMalleation = [](CAutoFile& file, SnapshotMetadata& meta){};
+
+template<typename F = decltype(NoMalleation)>
+static bool
+CreateAndActivateUTXOSnapshot(NodeContext& node, const fs::path root, F malleation = NoMalleation)
+{
+    // Write out a snapshot to the test's tempdir.
+    //
+    int height;
+    WITH_LOCK(::cs_main, height = node.chainman->ActiveHeight());
+    fs::path snapshot_path = root / tfm::format("test_snapshot.%d.dat", height);
+    FILE* outfile{fsbridge::fopen(snapshot_path, "wb")};
+    CAutoFile auto_outfile{outfile, SER_DISK, CLIENT_VERSION};
+
+    UniValue result = CreateUTXOSnapshot(node, node.chainman->ActiveChainstate(), auto_outfile);
+    BOOST_TEST_MESSAGE(
+        "Wrote UTXO snapshot to " << snapshot_path.make_preferred().string() << ": " << result.write());
+
+    // Read the written snapshot in and then activate it.
+    //
+    FILE* infile{fsbridge::fopen(snapshot_path, "rb")};
+    CAutoFile auto_infile{infile, SER_DISK, CLIENT_VERSION};
+    SnapshotMetadata metadata;
+    auto_infile >> metadata;
+
+    malleation(auto_infile, metadata);
+
+    return node.chainman->ActivateSnapshot(auto_infile, metadata, /*in_memory*/ true);
+}
+
+=======
+auto NoMalleation = [](CAutoFile& file, SnapshotMetadata& meta){};
+
+template<typename F = decltype(NoMalleation)>
+static bool
+CreateAndActivateUTXOSnapshot(NodeContext& node, const fs::path root, F malleation = NoMalleation)
+{
+    // Write out a snapshot to the test's tempdir.
+    //
+    int height;
+    WITH_LOCK(::cs_main, height = node.chainman->ActiveHeight());
+    fs::path snapshot_path = root / tfm::format("test_snapshot.%d.dat", height);
+    FILE* outfile{fsbridge::fopen(snapshot_path, "wb")};
+    CAutoFile auto_outfile{outfile, SER_DISK, CLIENT_VERSION};
+
+    UniValue result = CreateUTXOSnapshot(node, node.chainman->ActiveChainstate(), auto_outfile);
+    BOOST_TEST_MESSAGE(
+        "Wrote UTXO snapshot to " << fs::PathToString(snapshot_path.make_preferred()) << ": " << result.write());
+
+    // Read the written snapshot in and then activate it.
+    //
+    FILE* infile{fsbridge::fopen(snapshot_path, "rb")};
+    CAutoFile auto_infile{infile, SER_DISK, CLIENT_VERSION};
+    SnapshotMetadata metadata;
+    auto_infile >> metadata;
+
+    malleation(auto_infile, metadata);
+
+    return node.chainman->ActivateSnapshot(auto_infile, metadata, /*in_memory*/ true);
+}
+
+>>>>>>> a1b9c0f2a55 (refactor: Block unsafe fs::path std::string conversion calls)
 //! Test basic snapshot activation.
 BOOST_FIXTURE_TEST_CASE(chainstatemanager_activate_snapshot, TestChain100Setup)
 {
