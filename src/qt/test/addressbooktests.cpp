@@ -17,6 +17,7 @@
 
 #include <key.h>
 #include <key_io.h>
+#include <wallet/context.h>
 #include <wallet/wallet.h>
 #include <walletinitinterface.h>
 
@@ -109,7 +110,7 @@ void TestAddAddressesToSendBook(interfaces::Node& node)
     std::unique_ptr<const PlatformStyle> platformStyle(PlatformStyle::instantiate("other"));
     OptionsModel optionsModel;
     ClientModel clientModel(node, &optionsModel);
-    WalletContext& context = *node.walletClient().context();
+    WalletContext context;
     AddWallet(context, wallet);
     WalletModel walletModel(interfaces::MakeWallet(context, wallet), clientModel, platformStyle.get());
     RemoveWallet(context, wallet, /* load_on_start= */ std::nullopt);
