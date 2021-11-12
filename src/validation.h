@@ -43,12 +43,14 @@ class CBlockTreeDB;
 class CChainParams;
 class CTxMemPool;
 class ChainstateManager;
-class SnapshotMetadata;
 struct ChainTxData;
 struct DisconnectedBlockTransactions;
 struct PrecomputedTransactionData;
 struct LockPoints;
 struct AssumeutxoData;
+namespace node {
+class SnapshotMetadata;
+} // namespace node
 
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
 static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 1000;
@@ -809,7 +811,7 @@ private:
     [[nodiscard]] bool PopulateAndValidateSnapshot(
         CChainState& snapshot_chainstate,
         CAutoFile& coins_file,
-        const SnapshotMetadata& metadata);
+        const node::SnapshotMetadata& metadata);
 
     /**
      * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
@@ -886,7 +888,7 @@ public:
     //! - Move the new chainstate to `m_snapshot_chainstate` and make it our
     //!   ChainstateActive().
     [[nodiscard]] bool ActivateSnapshot(
-        CAutoFile& coins_file, const SnapshotMetadata& metadata, bool in_memory);
+        CAutoFile& coins_file, const node::SnapshotMetadata& metadata, bool in_memory);
 
     //! The most-work chain.
     CChainState& ActiveChainstate() const;
