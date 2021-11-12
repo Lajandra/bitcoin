@@ -10,12 +10,20 @@
 #include <string>
 #include <vector>
 
+class JSONRPCRequest;
+class UniValue;
 struct bilingual_str;
+
+namespace wallet {
 class CWallet;
+<<<<<<< HEAD
 enum class DatabaseStatus;
 class JSONRPCRequest;
+||||||| parent of e800d61ceea (Add src/wallet/* code to wallet:: namespace)
+class JSONRPCRequest;
+=======
+>>>>>>> e800d61ceea (Add src/wallet/* code to wallet:: namespace)
 class LegacyScriptPubKeyMan;
-class UniValue;
 struct WalletContext;
 
 extern const std::string HELP_REQUIRING_PASSPHRASE;
@@ -38,6 +46,13 @@ bool GetAvoidReuseFlag(const CWallet& wallet, const UniValue& param);
 bool ParseIncludeWatchonly(const UniValue& include_watchonly, const CWallet& wallet);
 std::string LabelFromValue(const UniValue& value);
 
+<<<<<<< HEAD
 void HandleWalletError(const std::shared_ptr<CWallet> wallet, DatabaseStatus& status, bilingual_str& error);
+||||||| parent of e800d61ceea (Add src/wallet/* code to wallet:: namespace)
+std::tuple<std::shared_ptr<CWallet>, std::vector<bilingual_str>> LoadWalletHelper(WalletContext& context, UniValue load_on_start_param, const std::string wallet_name);
+=======
+std::tuple<std::shared_ptr<CWallet>, std::vector<bilingual_str>> LoadWalletHelper(WalletContext& context, UniValue load_on_start_param, const std::string wallet_name);
+} //  namespace wallet
+>>>>>>> e800d61ceea (Add src/wallet/* code to wallet:: namespace)
 
 #endif // BITCOIN_WALLET_RPC_UTIL_H
