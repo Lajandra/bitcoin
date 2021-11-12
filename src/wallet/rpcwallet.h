@@ -13,12 +13,14 @@
 #include <vector>
 
 class CRPCCommand;
-class CWallet;
 class JSONRPCRequest;
-class LegacyScriptPubKeyMan;
 class UniValue;
 class CTransaction;
 struct PartiallySignedTransaction;
+
+namespace wallet {
+class CWallet;
+class LegacyScriptPubKeyMan;
 struct WalletContext;
 
 Span<const CRPCCommand> GetWalletRPCCommands();
@@ -38,4 +40,5 @@ const LegacyScriptPubKeyMan& EnsureConstLegacyScriptPubKeyMan(const CWallet& wal
 
 RPCHelpMan getaddressinfo();
 RPCHelpMan signrawtransactionwithwallet();
+} // namespace wallet
 #endif // BITCOIN_WALLET_RPCWALLET_H

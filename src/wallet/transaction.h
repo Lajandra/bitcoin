@@ -19,6 +19,7 @@
 #include <variant>
 #include <vector>
 
+<<<<<<< HEAD
 //! State of transaction confirmed in a block.
 struct TxStateConfirmed {
     uint256 confirmed_block_hash;
@@ -107,6 +108,10 @@ static inline int TxStateSerializedIndex(const TxState& state)
 }
 
 
+||||||| parent of 6ea409f96cc (Add src/wallet/* code to wallet:: namespace)
+=======
+namespace wallet {
+>>>>>>> 6ea409f96cc (Add src/wallet/* code to wallet:: namespace)
 typedef std::map<std::string, std::string> mapValue_t;
 
 /** Legacy class used for deserializing vtxPrev for backwards compatibility.
@@ -303,5 +308,6 @@ public:
     CWalletTx(CWalletTx const &) = delete;
     void operator=(CWalletTx const &x) = delete;
 };
+} // namespace wallet
 
 #endif // BITCOIN_WALLET_TRANSACTION_H
