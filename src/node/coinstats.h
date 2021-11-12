@@ -18,6 +18,7 @@
 class BlockManager;
 class CCoinsView;
 
+namespace node {
 enum class CoinStatsHashType {
     HASH_SERIALIZED,
     MUHASH,
@@ -74,5 +75,6 @@ bool GetUTXOStats(CCoinsView* view, BlockManager& blockman, CCoinsStats& stats, 
 uint64_t GetBogoSize(const CScript& script_pub_key);
 
 CDataStream TxOutSer(const COutPoint& outpoint, const Coin& coin);
+}  // namespace node
 
 #endif // BITCOIN_NODE_COINSTATS_H

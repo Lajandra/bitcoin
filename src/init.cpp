@@ -92,6 +92,15 @@
 #include <zmq/zmqrpc.h>
 #endif
 
+using node::CleanupBlockRevFiles;
+using node::DEFAULT_STOPAFTERBLOCKIMPORT;
+using node::NodeContext;
+using node::ThreadImport;
+using node::fHavePruned;
+using node::fPruneMode;
+using node::fReindex;
+using node::nPruneTarget;
+
 static const bool DEFAULT_PROXYRANDOMIZE = true;
 static const bool DEFAULT_REST_ENABLE = false;
 
