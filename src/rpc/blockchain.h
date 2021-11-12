@@ -23,7 +23,9 @@ class CChainState;
 class CTxMemPool;
 class ChainstateManager;
 class UniValue;
+namespace node {
 struct NodeContext;
+} // namespace node
 
 static constexpr int NUM_GETBLOCKSTATS_PERCENTILES = 5;
 
@@ -58,7 +60,7 @@ void CalculatePercentilesByWeight(CAmount result[NUM_GETBLOCKSTATS_PERCENTILES],
  * @return a UniValue map containing metadata about the snapshot.
  */
 UniValue CreateUTXOSnapshot(
-    NodeContext& node,
+    node::NodeContext& node,
     CChainState& chainstate,
     CAutoFile& afile,
     const fs::path& path,
