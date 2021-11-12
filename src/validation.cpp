@@ -61,6 +61,25 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+using node::BLOCKFILE_CHUNK_SIZE;
+using node::CCoinsStats;
+using node::CalculateCurrentUsage;
+using node::CoinStatsHashType;
+using node::GetUTXOStats;
+using node::OpenBlockFile;
+using node::ReadBlockFromDisk;
+using node::SaveBlockToDisk;
+using node::SnapshotMetadata;
+using node::UNDOFILE_CHUNK_SIZE;
+using node::UndoReadFromDisk;
+using node::UnlinkPrunedFiles;
+using node::WriteUndoDataForBlock;
+using node::fHavePruned;
+using node::fImporting;
+using node::fPruneMode;
+using node::fReindex;
+using node::nPruneTarget;
+
 #define MICRO 0.000001
 #define MILLI 0.001
 
@@ -138,6 +157,7 @@ namespace {
 } // namespace
 
 // Internal stuff from blockstorage ...
+namespace node {
 extern RecursiveMutex cs_LastBlockFile;
 extern std::vector<CBlockFileInfo> vinfoBlockFile;
 extern int nLastBlockFile;
@@ -145,6 +165,14 @@ extern bool fCheckForPruning;
 extern std::set<CBlockIndex*> setDirtyBlockIndex;
 extern std::set<int> setDirtyFileInfo;
 void FlushBlockFile(bool fFinalize = false, bool finalize_undo = false);
+} // namespace node
+using node::cs_LastBlockFile;
+using node::vinfoBlockFile;
+using node::nLastBlockFile;
+using node::fCheckForPruning;
+using node::setDirtyBlockIndex;
+using node::setDirtyFileInfo;
+using node::FlushBlockFile;
 // ... TODO move fully to blockstorage
 
 CBlockIndex* BlockManager::LookupBlockIndex(const uint256& hash) const
