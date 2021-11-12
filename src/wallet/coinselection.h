@@ -12,6 +12,7 @@
 
 #include <optional>
 
+namespace wallet {
 //! target minimum change amount
 static constexpr CAmount MIN_CHANGE{COIN / 100};
 //! final minimum change amount after paying for fees
@@ -210,5 +211,6 @@ std::optional<std::pair<std::set<CInputCoin>, CAmount>> SelectCoinsSRD(const std
 
 // Original coin selection algorithm as a fallback
 bool KnapsackSolver(const CAmount& nTargetValue, std::vector<OutputGroup>& groups, std::set<CInputCoin>& setCoinsRet, CAmount& nValueRet);
+}  // namespace wallet
 
 #endif // BITCOIN_WALLET_COINSELECTION_H
