@@ -7,9 +7,11 @@
 
 class CConnman;
 class PeerManager;
+namespace node {
 struct NodeContext;
+} // namespace node
 
-CConnman& EnsureConnman(const NodeContext& node);
-PeerManager& EnsurePeerman(const NodeContext& node);
+CConnman& EnsureConnman(const node::NodeContext& node);
+PeerManager& EnsurePeerman(const node::NodeContext& node);
 
 #endif // BITCOIN_RPC_NET_H
