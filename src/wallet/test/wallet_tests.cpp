@@ -34,6 +34,7 @@ using node::GetBlockFileInfo;
 using node::MAX_BLOCKFILE_SIZE;
 using node::UnlinkPrunedFiles;
 
+namespace wallet {
 RPCHelpMan importmulti();
 RPCHelpMan dumpwallet();
 RPCHelpMan importwallet();
@@ -293,7 +294,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         request.params.setArray();
         request.params.push_back(backup_file);
 
-        ::dumpwallet().HandleRequest(request);
+        wallet::dumpwallet().HandleRequest(request);
         RemoveWallet(context, wallet, /* load_on_start= */ std::nullopt);
     }
 
@@ -312,7 +313,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         request.params.push_back(backup_file);
         AddWallet(context, wallet);
         wallet->SetLastBlockProcessed(m_node.chainman->ActiveChain().Height(), m_node.chainman->ActiveChain().Tip()->GetBlockHash());
-        ::importwallet().HandleRequest(request);
+        wallet::importwallet().HandleRequest(request);
         RemoveWallet(context, wallet, /* load_on_start= */ std::nullopt);
 
         BOOST_CHECK_EQUAL(wallet->mapWallet.size(), 3U);
@@ -850,3 +851,4 @@ BOOST_FIXTURE_TEST_CASE(ZapSelectTx, TestChain100Setup)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+} // namespace wallet
