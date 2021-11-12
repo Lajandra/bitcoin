@@ -10,11 +10,13 @@
 #include <string>
 #include <vector>
 
-struct bilingual_str;
-class CWallet;
 class JSONRPCRequest;
-class LegacyScriptPubKeyMan;
 class UniValue;
+struct bilingual_str;
+
+namespace wallet {
+class CWallet;
+class LegacyScriptPubKeyMan;
 struct WalletContext;
 
 extern const std::string HELP_REQUIRING_PASSPHRASE;
@@ -38,5 +40,6 @@ bool ParseIncludeWatchonly(const UniValue& include_watchonly, const CWallet& wal
 std::string LabelFromValue(const UniValue& value);
 
 std::tuple<std::shared_ptr<CWallet>, std::vector<bilingual_str>> LoadWalletHelper(WalletContext& context, UniValue load_on_start_param, const std::string wallet_name);
+} //  namespace wallet
 
 #endif // BITCOIN_WALLET_RPC_UTIL_H

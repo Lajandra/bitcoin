@@ -13,6 +13,7 @@
 #include <numeric>
 #include <optional>
 
+namespace wallet {
 // Descending order comparator
 struct {
     bool operator()(const OutputGroup& a, const OutputGroup& b) const
@@ -395,3 +396,4 @@ CAmount GetSelectionWaste(const std::set<CInputCoin>& inputs, CAmount change_cos
 
     return waste;
 }
+} // namespace wallet
