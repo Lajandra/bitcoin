@@ -16,6 +16,8 @@
 #include <validation.h>
 #include <versionbits.h>
 
+using node::NodeContext;
+
 CTxIn generatetoaddress(const NodeContext& node, const std::string& address)
 {
     const auto dest = DecodeDestination(address);
