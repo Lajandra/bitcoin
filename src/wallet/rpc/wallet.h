@@ -9,6 +9,19 @@
 
 class CRPCCommand;
 
+namespace wallet {
 Span<const CRPCCommand> GetWalletRPCCommands();
 
+<<<<<<< HEAD:src/wallet/rpc/wallet.h
 #endif // BITCOIN_WALLET_RPC_WALLET_H
+||||||| parent of 64c8123c6e3 (Add src/wallet/* code to wallet:: namespace):src/wallet/rpcwallet.h
+RPCHelpMan getaddressinfo();
+RPCHelpMan signrawtransactionwithwallet();
+#endif // BITCOIN_WALLET_RPCWALLET_H
+=======
+RPCHelpMan getaddressinfo();
+RPCHelpMan signrawtransactionwithwallet();
+} // namespace wallet
+
+#endif // BITCOIN_WALLET_RPCWALLET_H
+>>>>>>> 64c8123c6e3 (Add src/wallet/* code to wallet:: namespace):src/wallet/rpcwallet.h
