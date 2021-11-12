@@ -18,6 +18,13 @@
 #include <string>
 #include <vector>
 
+using wallet::CWallet;
+using wallet::DatabaseOptions;
+using wallet::DatabaseStatus;
+using wallet::GetWalletDir;
+using wallet::WALLET_FLAG_DESCRIPTORS;
+using wallet::WalletContext;
+
 namespace {
 const TestingSetup* g_setup;
 
