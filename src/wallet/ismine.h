@@ -11,8 +11,10 @@
 #include <stdint.h>
 #include <bitset>
 
-class CWallet;
 class CScript;
+
+namespace wallet {
+class CWallet;
 
 /**
  * IsMine() return codes, which depend on ScriptPubKeyMan implementation.
@@ -66,5 +68,6 @@ struct CachableAmount
         m_value[filter] = value;
     }
 };
+} // namespace wallet
 
 #endif // BITCOIN_WALLET_ISMINE_H

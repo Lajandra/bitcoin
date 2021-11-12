@@ -47,6 +47,7 @@
 
 using interfaces::FoundBlock;
 
+namespace wallet {
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 static const std::string HELP_REQUIRING_PASSPHRASE{"\nRequires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"};
 
@@ -4937,3 +4938,4 @@ static const CRPCCommand commands[] =
 // clang-format on
     return MakeSpan(commands);
 }
+} // namespace wallet

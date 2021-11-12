@@ -17,6 +17,7 @@
 #include <list>
 #include <vector>
 
+namespace wallet {
 typedef std::map<std::string, std::string> mapValue_t;
 
 /** Legacy class used for deserializing vtxPrev for backwards compatibility.
@@ -273,5 +274,6 @@ public:
     CWalletTx(CWalletTx const &) = delete;
     void operator=(CWalletTx const &x) = delete;
 };
+} // namespace wallet
 
 #endif // BITCOIN_WALLET_TRANSACTION_H
