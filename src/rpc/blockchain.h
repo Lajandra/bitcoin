@@ -23,7 +23,9 @@ class CChainState;
 class CTxMemPool;
 class ChainstateManager;
 class UniValue;
+namespace node {
 struct NodeContext;
+} // namespace node
 
 static constexpr int NUM_GETBLOCKSTATS_PERCENTILES = 5;
 
@@ -53,18 +55,18 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
 /** Used by getblockstats to get feerates at different percentiles by weight  */
 void CalculatePercentilesByWeight(CAmount result[NUM_GETBLOCKSTATS_PERCENTILES], std::vector<std::pair<CAmount, int64_t>>& scores, int64_t total_weight);
 
-NodeContext& EnsureAnyNodeContext(const std::any& context);
-CTxMemPool& EnsureMemPool(const NodeContext& node);
+node::NodeContext& EnsureAnyNodeContext(const std::any& context);
+CTxMemPool& EnsureMemPool(const node::NodeContext& node);
 CTxMemPool& EnsureAnyMemPool(const std::any& context);
-ChainstateManager& EnsureChainman(const NodeContext& node);
+ChainstateManager& EnsureChainman(const node::NodeContext& node);
 ChainstateManager& EnsureAnyChainman(const std::any& context);
-CBlockPolicyEstimator& EnsureFeeEstimator(const NodeContext& node);
+CBlockPolicyEstimator& EnsureFeeEstimator(const node::NodeContext& node);
 CBlockPolicyEstimator& EnsureAnyFeeEstimator(const std::any& context);
 
 /**
  * Helper to create UTXO snapshots given a chainstate and a file handle.
  * @return a UniValue map containing metadata about the snapshot.
  */
-UniValue CreateUTXOSnapshot(NodeContext& node, CChainState& chainstate, CAutoFile& afile);
+UniValue CreateUTXOSnapshot(node::NodeContext& node, CChainState& chainstate, CAutoFile& afile);
 
 #endif // BITCOIN_RPC_BLOCKCHAIN_H
