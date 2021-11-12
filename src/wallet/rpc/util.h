@@ -10,11 +10,19 @@
 #include <string>
 #include <vector>
 
+<<<<<<< HEAD
 struct bilingual_str;
 class CWallet;
+||||||| parent of 0818cef3c5f (Add src/wallet/* code to wallet:: namespace)
+class CWallet;
+=======
+>>>>>>> 0818cef3c5f (Add src/wallet/* code to wallet:: namespace)
 class JSONRPCRequest;
-class LegacyScriptPubKeyMan;
 class UniValue;
+
+namespace wallet {
+class CWallet;
+class LegacyScriptPubKeyMan;
 struct WalletContext;
 
 extern const std::string HELP_REQUIRING_PASSPHRASE;
@@ -36,6 +44,7 @@ const LegacyScriptPubKeyMan& EnsureConstLegacyScriptPubKeyMan(const CWallet& wal
 bool GetAvoidReuseFlag(const CWallet& wallet, const UniValue& param);
 bool ParseIncludeWatchonly(const UniValue& include_watchonly, const CWallet& wallet);
 std::string LabelFromValue(const UniValue& value);
+} //  namespace wallet
 
 std::tuple<std::shared_ptr<CWallet>, std::vector<bilingual_str>> LoadWalletHelper(WalletContext& context, UniValue load_on_start_param, const std::string wallet_name);
 

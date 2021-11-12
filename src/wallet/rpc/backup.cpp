@@ -31,6 +31,7 @@
 
 using interfaces::FoundBlock;
 
+namespace wallet {
 std::string static EncodeDumpString(const std::string &str) {
     std::stringstream ret;
     for (const unsigned char c : str) {
@@ -1831,6 +1832,7 @@ RPCHelpMan listdescriptors()
 },
     };
 }
+<<<<<<< HEAD:src/wallet/rpc/backup.cpp
 
 RPCHelpMan backupwallet()
 {
@@ -1927,3 +1929,7 @@ RPCHelpMan restorewallet()
 },
     };
 }
+||||||| parent of 0818cef3c5f (Add src/wallet/* code to wallet:: namespace):src/wallet/rpcdump.cpp
+=======
+} // namespace wallet
+>>>>>>> 0818cef3c5f (Add src/wallet/* code to wallet:: namespace):src/wallet/rpcdump.cpp

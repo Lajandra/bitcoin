@@ -12,6 +12,7 @@
 
 #include <univalue.h>
 
+namespace wallet {
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 const std::string HELP_REQUIRING_PASSPHRASE{"\nRequires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"};
 
@@ -121,6 +122,7 @@ std::string LabelFromValue(const UniValue& value)
         throw JSONRPCError(RPC_WALLET_INVALID_LABEL_NAME, "Invalid label name");
     return label;
 }
+<<<<<<< HEAD
 
 std::tuple<std::shared_ptr<CWallet>, std::vector<bilingual_str>> LoadWalletHelper(WalletContext& context, UniValue load_on_start_param, const std::string wallet_name)
 {
@@ -152,3 +154,7 @@ std::tuple<std::shared_ptr<CWallet>, std::vector<bilingual_str>> LoadWalletHelpe
 
     return { wallet, warnings };
 }
+||||||| parent of 0818cef3c5f (Add src/wallet/* code to wallet:: namespace)
+=======
+} // namespace wallet
+>>>>>>> 0818cef3c5f (Add src/wallet/* code to wallet:: namespace)
