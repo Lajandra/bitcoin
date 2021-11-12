@@ -11,6 +11,7 @@
 
 #include <univalue.h>
 
+namespace wallet {
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 const std::string HELP_REQUIRING_PASSPHRASE{"\nRequires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"};
 
@@ -120,3 +121,4 @@ std::string LabelFromValue(const UniValue& value)
         throw JSONRPCError(RPC_WALLET_INVALID_LABEL_NAME, "Invalid label name");
     return label;
 }
+} // namespace wallet

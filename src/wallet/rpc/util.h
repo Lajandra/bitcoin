@@ -9,10 +9,12 @@
 #include <memory>
 #include <string>
 
-class CWallet;
 class JSONRPCRequest;
-class LegacyScriptPubKeyMan;
 class UniValue;
+
+namespace wallet {
+class CWallet;
+class LegacyScriptPubKeyMan;
 struct WalletContext;
 
 extern const std::string HELP_REQUIRING_PASSPHRASE;
@@ -34,5 +36,6 @@ const LegacyScriptPubKeyMan& EnsureConstLegacyScriptPubKeyMan(const CWallet& wal
 bool GetAvoidReuseFlag(const CWallet& wallet, const UniValue& param);
 bool ParseIncludeWatchonly(const UniValue& include_watchonly, const CWallet& wallet);
 std::string LabelFromValue(const UniValue& value);
+} //  namespace wallet
 
 #endif // BITCOIN_WALLET_RPC_UTIL_H

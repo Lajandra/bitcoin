@@ -48,6 +48,7 @@
 using interfaces::FoundBlock;
 
 
+namespace wallet {
 /** Checks if a CKey is in the given CWallet compressed or otherwise*/
 bool HaveKey(const SigningProvider& wallet, const CKey& key)
 {
@@ -4773,3 +4774,4 @@ static const CRPCCommand commands[] =
 // clang-format on
     return MakeSpan(commands);
 }
+} // namespace wallet
