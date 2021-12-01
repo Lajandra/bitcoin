@@ -181,18 +181,15 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
     // instead of unit tests, but for now we need these here.
     RegisterAllCoreRPCCommands(tableRPC);
 
-    auto rv = LoadChainstate(fReindex.load(),
-                             *Assert(m_node.chainman.get()),
-                             Assert(m_node.mempool.get()),
-                             fPruneMode,
-                             chainparams.GetConsensus(),
-                             m_args.GetBoolArg("-reindex-chainstate", false),
-                             m_cache_sizes.block_tree_db,
-                             m_cache_sizes.coins_db,
-                             m_cache_sizes.coins,
-                             true,
-                             true);
-    assert(!rv.has_value());
+    InitOptions options;
+    options.mempool = Assert(m_node.mempool.get());
+    options.block_tree_db_in_memory = true;
+    options.coins_db_in_memory = true;
+    options.reset = fReindex.load();
+    options.prune = fPruneMode,
+    options.reindex = m_args.GetBoolArg("-reindex-chainstate", false);
+    auto [ status, error ] = LoadChainstate(*Assert(m_node.chainman.get()), chainparams.GetConsensus(), m_cache_sizes, options);
+    assert(status == InitStatus::SUCCESS);
 
     BlockValidationState state;
     if (!m_node.chainman->ActiveChainstate().ActivateBestChain(state)) {

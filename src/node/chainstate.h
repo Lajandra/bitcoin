@@ -5,27 +5,38 @@
 #ifndef BITCOIN_NODE_CHAINSTATE_H
 #define BITCOIN_NODE_CHAINSTATE_H
 
+#include <validation.h>
+
 #include <cstdint>
 #include <functional>
-#include <optional>
+#include <tuple>
 
 class ChainstateManager;
 namespace Consensus {
     struct Params;
 }
 class CTxMemPool;
+struct CacheSizes;
+struct bilingual_str;
 
-enum class ChainstateLoadingError {
-    ERROR_LOADING_BLOCK_DB,
-    ERROR_BAD_GENESIS_BLOCK,
-    ERROR_PRUNED_NEEDS_REINDEX,
-    ERROR_LOAD_GENESIS_BLOCK_FAILED,
-    ERROR_CHAINSTATE_UPGRADE_FAILED,
-    ERROR_REPLAYBLOCKS_FAILED,
-    ERROR_LOADCHAINTIP_FAILED,
-    ERROR_GENERIC_BLOCKDB_OPEN_FAILED,
-    ERROR_BLOCKS_WITNESS_INSUFFICIENTLY_VALIDATED,
-    SHUTDOWN_PROBED,
+enum class InitStatus { SUCCESS, FAILURE, INTERRUPTED };
+
+//! Status code and optional string.
+using InitResult = std::tuple<InitStatus, bilingual_str>;
+
+struct InitOptions
+{
+    CTxMemPool* mempool = nullptr;
+    bool block_tree_db_in_memory = false;
+    bool coins_db_in_memory = false;
+    bool reset = false;
+    bool prune = false;
+    bool reindex = false;
+    int64_t check_blocks = DEFAULT_CHECKBLOCKS;
+    int64_t check_level = DEFAULT_CHECKLEVEL;
+    std::function<bool()> check_interrupt;
+    std::function<void()> coins_error_cb;
+    std::function<int64_t()> get_unix_time_seconds;
 };
 
 /** This sequence can have 4 types of outcomes:
@@ -39,47 +50,17 @@ enum class ChainstateLoadingError {
  *  4. Hard failure
  *    - a failure that definitively cannot be recovered from with a reindex
  *
- *  Currently, LoadChainstate returns a std::optional<ChainstateLoadingError>
- *  which:
- *
- *  - if has_value()
- *      - Either "Soft failure", "Hard failure", or "Shutdown requested",
- *        differentiable by the specific enumerator.
- *
- *        Note that a return value of SHUTDOWN_PROBED means ONLY that "during
- *        this sequence, when we explicitly checked shutdown_requested() at
- *        arbitrary points, one of those calls returned true". Therefore, a
- *        return value other than SHUTDOWN_PROBED does not guarantee that
- *        shutdown_requested() hasn't been called indirectly.
- *  - else
- *      - Success!
+ *  LoadChainstate returns a (status code, error string) tuple.
  */
-std::optional<ChainstateLoadingError> LoadChainstate(bool fReset,
-                                                     ChainstateManager& chainman,
-                                                     CTxMemPool* mempool,
-                                                     bool fPruneMode,
-                                                     const Consensus::Params& consensus_params,
-                                                     bool fReindexChainState,
-                                                     int64_t nBlockTreeDBCache,
-                                                     int64_t nCoinDBCache,
-                                                     int64_t nCoinCacheUsage,
-                                                     bool block_tree_db_in_memory,
-                                                     bool coins_db_in_memory,
-                                                     std::optional<std::function<bool()>> shutdown_requested = std::nullopt,
-                                                     std::optional<std::function<void()>> coins_error_cb = std::nullopt);
+InitResult LoadChainstate(
+    ChainstateManager& chainman,
+    const Consensus::Params& consensus_params,
+    const CacheSizes& cache_sizes,
+    const InitOptions& options = {});
 
-enum class ChainstateLoadVerifyError {
-    ERROR_BLOCK_FROM_FUTURE,
-    ERROR_CORRUPTED_BLOCK_DB,
-    ERROR_GENERIC_FAILURE,
-};
-
-std::optional<ChainstateLoadVerifyError> VerifyLoadedChainstate(ChainstateManager& chainman,
-                                                                bool fReset,
-                                                                bool fReindexChainState,
-                                                                const Consensus::Params& consensus_params,
-                                                                unsigned int check_blocks,
-                                                                unsigned int check_level,
-                                                                std::function<int64_t()> get_unix_time_seconds);
+InitResult VerifyLoadedChainstate(
+    ChainstateManager& chainman,
+    const Consensus::Params& consensus_params,
+    const InitOptions& options = {});
 
 #endif // BITCOIN_NODE_CHAINSTATE_H
