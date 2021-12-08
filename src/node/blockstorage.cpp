@@ -473,8 +473,8 @@ void CleanupBlockRevFiles()
         remove(item.second);
     }
 }
-} // namespace node
 
+<<<<<<< HEAD
 std::string CBlockFileInfo::ToString() const
 {
     return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, FormatISO8601Date(nTimeFirst), FormatISO8601Date(nTimeLast));
@@ -486,6 +486,15 @@ CBlockFileInfo* BlockManager::GetBlockFileInfo(size_t n)
 CBlockFileInfo* GetBlockFileInfo(size_t n)
 =======
 namespace node {
+||||||| parent of c776907128c (Move CBlockFileInfo::ToString method where class is declared)
+std::string CBlockFileInfo::ToString() const
+{
+    return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, FormatISO8601Date(nTimeFirst), FormatISO8601Date(nTimeLast));
+}
+
+namespace node {
+=======
+>>>>>>> c776907128c (Move CBlockFileInfo::ToString method where class is declared)
 CBlockFileInfo* GetBlockFileInfo(size_t n)
 >>>>>>> 59bd9731b68 (Add src/node/* code to node:: namespace)
 {
