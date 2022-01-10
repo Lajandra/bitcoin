@@ -828,7 +828,13 @@ public:
     std::thread m_load_block;
     //! A single BlockManager instance is shared across each constructed
     //! chainstate to avoid duplicating block metadata.
+<<<<<<< HEAD
     node::BlockManager m_blockman GUARDED_BY(::cs_main);
+||||||| parent of 5a1c413a33a (Remove cs_main lock annotation from ChainstateManager.m_blockman)
+    BlockManager m_blockman GUARDED_BY(::cs_main);
+=======
+    BlockManager m_blockman{};
+>>>>>>> 5a1c413a33a (Remove cs_main lock annotation from ChainstateManager.m_blockman)
 
     /**
      * In order to efficiently track invalidity of headers, we keep the set of
