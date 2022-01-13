@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <index/coinstatsindex.h>
+#include <interfaces/chain.h>
 #include <test/util/setup_common.h>
 #include <util/time.h>
 #include <validation.h>
@@ -34,7 +35,7 @@ BOOST_FIXTURE_TEST_CASE(coinstatsindex_initial_sync, TestChain100Setup)
     // is started.
     BOOST_CHECK(!coin_stats_index.BlockUntilSyncedToCurrentChain());
 
-    BOOST_REQUIRE(coin_stats_index.Start(m_node.chainman->ActiveChainstate()));
+    BOOST_REQUIRE(coin_stats_index.Start(interfaces::MakeChain(m_node)));
 
     // Allow the CoinStatsIndex to catch up with the block index that is syncing
     // in a background thread.

@@ -4,7 +4,9 @@
 
 #include <chainparams.h>
 #include <index/base.h>
+#include <interfaces/chain.h>
 #include <node/blockstorage.h>
+#include <node/context.h>
 #include <node/ui_interface.h>
 #include <shutdown.h>
 #include <tinyformat.h>
@@ -345,9 +347,10 @@ void BaseIndex::Interrupt()
     m_interrupt();
 }
 
-bool BaseIndex::Start(CChainState& active_chainstate)
+bool BaseIndex::Start(std::unique_ptr<interfaces::Chain> chain)
 {
-    m_chainstate = &active_chainstate;
+    m_chain = std::move(chain);
+    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
     // Need to register this ValidationInterface before running Init(), so that
     // callbacks are not missed if Init sets m_synced to true.
     RegisterValidationInterface(this);
