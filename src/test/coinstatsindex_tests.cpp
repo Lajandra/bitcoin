@@ -4,6 +4,7 @@
 
 #include <chainparams.h>
 #include <index/coinstatsindex.h>
+#include <interfaces/chain.h>
 #include <test/util/setup_common.h>
 #include <test/util/validation.h>
 #include <util/time.h>
@@ -31,7 +32,7 @@ static void IndexWaitSynced(BaseIndex& index)
 
 BOOST_FIXTURE_TEST_CASE(coinstatsindex_initial_sync, TestChain100Setup)
 {
-    CoinStatsIndex coin_stats_index{1 << 20, true};
+    CoinStatsIndex coin_stats_index{interfaces::MakeChain(m_node), 1 << 20, true};
 
     CCoinsStats coin_stats{CoinStatsHashType::MUHASH};
     const CBlockIndex* block_index;
@@ -47,7 +48,7 @@ BOOST_FIXTURE_TEST_CASE(coinstatsindex_initial_sync, TestChain100Setup)
     // is started.
     BOOST_CHECK(!coin_stats_index.BlockUntilSyncedToCurrentChain());
 
-    BOOST_REQUIRE(coin_stats_index.Start(m_node.chainman->ActiveChainstate()));
+    BOOST_REQUIRE(coin_stats_index.Start());
 
     IndexWaitSynced(coin_stats_index);
 
