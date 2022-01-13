@@ -6,6 +6,7 @@
 #include <chainparams.h>
 #include <consensus/validation.h>
 #include <index/blockfilterindex.h>
+#include <interfaces/chain.h>
 #include <node/miner.h>
 #include <pow.h>
 #include <script/standard.h>
@@ -135,7 +136,7 @@ BOOST_FIXTURE_TEST_CASE(blockfilter_index_initial_sync, BuildChainTestingSetup)
     // BlockUntilSyncedToCurrentChain should return false before index is started.
     BOOST_CHECK(!filter_index.BlockUntilSyncedToCurrentChain());
 
-    BOOST_REQUIRE(filter_index.Start(m_node.chainman->ActiveChainstate()));
+    BOOST_REQUIRE(filter_index.Start(interfaces::MakeChain(m_node)));
 
     // Allow filter index to catch up with the block index.
     constexpr int64_t timeout_ms = 10 * 1000;
