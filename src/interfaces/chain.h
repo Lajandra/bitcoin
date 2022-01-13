@@ -301,9 +301,17 @@ public:
     //! to be prepared to handle this by ignoring notifications about unknown
     //! removed transactions and already added new transactions.
     virtual void requestMempoolTransactions(Notifications& notifications) = 0;
+<<<<<<< HEAD
 
     //! Return true if an assumed-valid chain is in use.
     virtual bool hasAssumedValidChain() = 0;
+||||||| parent of d300a863696 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
+=======
+
+    //! Get internal node context. Useful for testing, but not
+    //! accessible across processes.
+    virtual node::NodeContext* context() { return nullptr; }
+>>>>>>> d300a863696 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
 };
 
 //! Interface to let node manage chain clients (wallets, or maybe tools for

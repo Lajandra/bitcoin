@@ -22,7 +22,14 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
     "wallet/fees -> wallet/wallet -> wallet/fees",
     "wallet/wallet -> wallet/walletdb -> wallet/wallet",
     "kernel/coinstats -> validation -> kernel/coinstats",
+<<<<<<< HEAD
     "kernel/mempool_persist -> validation -> kernel/mempool_persist",
+||||||| parent of d300a863696 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
+=======
+
+    # Temporary, removed in followup https://github.com/bitcoin/bitcoin/pull/24230
+    "index/base -> node/context -> net_processing -> index/blockfilterindex -> index/base",
+>>>>>>> d300a863696 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
 )
 
 CODE_DIR = "src"

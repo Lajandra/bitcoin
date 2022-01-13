@@ -776,11 +776,16 @@ public:
             notifications.transactionAddedToMempool(entry.GetSharedTx(), 0 /* mempool_sequence */);
         }
     }
+<<<<<<< HEAD
     bool hasAssumedValidChain() override
     {
         return Assert(m_node.chainman)->IsSnapshotActive();
     }
 
+||||||| parent of d300a863696 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
+=======
+    NodeContext* context() override { return &m_node; }
+>>>>>>> d300a863696 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
     NodeContext& m_node;
 };
 } // namespace
