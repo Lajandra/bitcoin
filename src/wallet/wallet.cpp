@@ -1336,9 +1336,19 @@ void CWallet::blockDisconnected(const interfaces::BlockInfo& block)
     // be unconfirmed, whether or not the transaction is added back to the mempool.
     // User may have to call abandontransaction again. It may be addressed in the
     // future with a stickier abandoned state or even removing abandontransaction call.
+<<<<<<< HEAD
     m_last_block_processed_height = block.height - 1;
     m_last_block_processed = *Assert(block.prev_hash);
     for (const CTransactionRef& ptx : Assert(block.data)->vtx) {
+||||||| parent of 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
+    m_last_block_processed_height = height - 1;
+    m_last_block_processed = block.hashPrevBlock;
+    for (const CTransactionRef& ptx : block.vtx) {
+=======
+    m_last_block_processed_height = block.height - 1;
+    m_last_block_processed = *block.prev_hash;
+    for (const CTransactionRef& ptx : block.data->vtx) {
+>>>>>>> 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
         SyncTransaction(ptx, TxStateInactive{});
     }
 }

@@ -19,7 +19,12 @@
 #include <netaddress.h>
 #include <netbase.h>
 #include <node/blockstorage.h>
+<<<<<<< HEAD
 #include <kernel/chain.h>
+||||||| parent of 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
+=======
+#include <node/chain.h>
+>>>>>>> 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
 #include <node/coin.h>
 #include <node/context.h>
 #include <node/transaction.h>
@@ -428,11 +433,23 @@ public:
     }
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
+<<<<<<< HEAD
         m_notifications->blockConnected(kernel::MakeBlockInfo(index, block.get()));
+||||||| parent of 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
+        m_notifications->blockConnected(*block, index->nHeight);
+=======
+        m_notifications->blockConnected(node::MakeBlockInfo(index, block.get()));
+>>>>>>> 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
     }
     void BlockDisconnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
+<<<<<<< HEAD
         m_notifications->blockDisconnected(kernel::MakeBlockInfo(index, block.get()));
+||||||| parent of 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
+        m_notifications->blockDisconnected(*block, index->nHeight);
+=======
+        m_notifications->blockDisconnected(node::MakeBlockInfo(index, block.get()));
+>>>>>>> 0a93a166146 (interfaces, refactor: Add more block information to block connected notifications)
     }
     void UpdatedBlockTip(const CBlockIndex* index, const CBlockIndex* fork_index, bool is_ibd) override
     {
