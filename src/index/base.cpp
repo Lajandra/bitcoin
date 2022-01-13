@@ -4,8 +4,16 @@
 
 #include <chainparams.h>
 #include <index/base.h>
+#include <interfaces/chain.h>
 #include <node/blockstorage.h>
+<<<<<<< HEAD
 #include <node/interface_ui.h>
+||||||| parent of 0c192932448 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
+#include <node/ui_interface.h>
+=======
+#include <node/context.h>
+#include <node/ui_interface.h>
+>>>>>>> 0c192932448 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
 #include <shutdown.h>
 #include <tinyformat.h>
 #include <util/syscall_sandbox.h>
@@ -48,6 +56,9 @@ void BaseIndex::DB::WriteBestBlock(CDBBatch& batch, const CBlockLocator& locator
 {
     batch.Write(DB_BEST_BLOCK, locator);
 }
+
+BaseIndex::BaseIndex(std::unique_ptr<interfaces::Chain> chain)
+    : m_chain{std::move(chain)} {}
 
 BaseIndex::~BaseIndex()
 {
@@ -346,9 +357,11 @@ void BaseIndex::Interrupt()
     m_interrupt();
 }
 
-bool BaseIndex::Start(CChainState& active_chainstate)
+bool BaseIndex::Start()
 {
-    m_chainstate = &active_chainstate;
+    // m_chainstate member gives indexing code access to node internals. It
+    // will be removed in upcoming commit
+    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
     // Need to register this ValidationInterface before running Init(), so that
     // callbacks are not missed if Init sets m_synced to true.
     RegisterValidationInterface(this);
