@@ -103,8 +103,14 @@ struct DBHashKey {
 
 std::unique_ptr<CoinStatsIndex> g_coin_stats_index;
 
+<<<<<<< HEAD
 CoinStatsIndex::CoinStatsIndex(std::unique_ptr<interfaces::Chain> chain, size_t n_cache_size, bool f_memory, bool f_wipe)
     : BaseIndex(std::move(chain))
+||||||| parent of 05af3975a30 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
+CoinStatsIndex::CoinStatsIndex(size_t n_cache_size, bool f_memory, bool f_wipe)
+=======
+CoinStatsIndex::CoinStatsIndex(std::unique_ptr<interfaces::Chain> chain, size_t n_cache_size, bool f_memory, bool f_wipe) : BaseIndex(std::move(chain))
+>>>>>>> 05af3975a30 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
 {
     fs::path path{gArgs.GetDataDirNet() / "indexes" / "coinstats"};
     fs::create_directories(path);

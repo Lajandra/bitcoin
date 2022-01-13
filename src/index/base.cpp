@@ -4,8 +4,13 @@
 
 #include <chainparams.h>
 #include <index/base.h>
+<<<<<<< HEAD
 #include <interfaces/chain.h>
 #include <kernel/chain.h>
+||||||| parent of 05af3975a30 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
+=======
+#include <interfaces/chain.h>
+>>>>>>> 05af3975a30 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
 #include <node/blockstorage.h>
 #include <node/context.h>
 #include <node/interface_ui.h>
@@ -369,9 +374,17 @@ void BaseIndex::Interrupt()
 
 bool BaseIndex::Start()
 {
+<<<<<<< HEAD
     // m_chainstate member gives indexing code access to node internals. It is
     // removed in followup https://github.com/bitcoin/bitcoin/pull/24230
     m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
+||||||| parent of 05af3975a30 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
+    m_chainstate = &active_chainstate;
+=======
+    // m_chainstate member gives indexing code access to node internals. It
+    // will be removed in upcoming commit
+    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
+>>>>>>> 05af3975a30 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
     // Need to register this ValidationInterface before running Init(), so that
     // callbacks are not missed if Init sets m_synced to true.
     RegisterValidationInterface(this);
