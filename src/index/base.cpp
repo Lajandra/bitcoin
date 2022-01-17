@@ -354,7 +354,11 @@ bool BaseIndex::Start(std::unique_ptr<interfaces::Chain> chain)
     // Need to register this ValidationInterface before running Init(), so that
     // callbacks are not missed if Init sets m_synced to true.
     RegisterValidationInterface(this);
-    if (!Init()) {
+    if (!Init()) return false;
+
+    const CBlockIndex* index = m_best_block_index.load();
+    if (!CustomInit(index ? std::make_optional(index->GetBlockHash()) : std::nullopt,
+                    index ? std::make_optional(index->nHeight) : std::nullopt)) {
         return false;
     }
 
