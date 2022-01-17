@@ -37,7 +37,7 @@ private:
     bool ReverseBlock(const CBlock& block, const CBlockIndex* pindex);
 
 protected:
-    bool Init() override;
+    bool CustomInit(const std::optional<interfaces::BlockKey>& block) override;
 
     bool CommitInternal(CDBBatch& batch) override;
 
