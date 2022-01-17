@@ -37,7 +37,7 @@ private:
     bool ReverseBlock(const CBlock& block, const CBlockIndex* pindex);
 
 protected:
-    bool Init() override;
+    bool CustomInit(const std::optional<uint256>& block, std::optional<int> height) override;
 
     bool WriteBlock(const CBlock& block, const CBlockIndex* pindex) override;
 
