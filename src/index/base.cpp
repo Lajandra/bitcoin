@@ -374,7 +374,10 @@ bool BaseIndex::Start()
     // m_chainstate member gives indexing code access to node internals. It
     // will be removed in upcoming commit
     m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
-    if (!Init()) {
+    if (!Init()) return false;
+
+    const CBlockIndex* index = m_best_block_index.load();
+    if (!CustomInit(index ? std::make_optional(interfaces::BlockKey{index->GetBlockHash(), index->nHeight}) : std::nullopt)) {
         return false;
     }
 
