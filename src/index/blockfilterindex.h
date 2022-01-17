@@ -39,7 +39,7 @@ private:
     std::unordered_map<uint256, uint256, FilterHeaderHasher> m_headers_cache GUARDED_BY(m_cs_headers_cache);
 
 protected:
-    bool Init() override;
+    bool CustomInit(const std::optional<interfaces::BlockKey>& block) override;
 
     bool CommitInternal(CDBBatch& batch) override;
 
