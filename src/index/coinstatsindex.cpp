@@ -369,7 +369,13 @@ bool CoinStatsIndex::CustomInit(const std::optional<interfaces::BlockKey>& block
 
     if (block) {
         DBVal entry;
+<<<<<<< HEAD
         if (!LookUpOne(*m_db, *block, entry)) {
+||||||| parent of 0d1d533dd5d (indexes, refactor: Remove CBlockIndex* uses in coinstatsindex LookUpOne function)
+        if (!LookUpOne(*m_db, pindex, entry)) {
+=======
+        if (!LookUpOne(*m_db, {pindex->GetBlockHash(), pindex->nHeight}, entry)) {
+>>>>>>> 0d1d533dd5d (indexes, refactor: Remove CBlockIndex* uses in coinstatsindex LookUpOne function)
             return error("%s: Cannot read current %s state; index may be corrupted",
                          __func__, GetName());
         }
