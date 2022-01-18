@@ -7,10 +7,15 @@
 #include <interfaces/chain.h>
 #include <node/blockstorage.h>
 <<<<<<< HEAD
+<<<<<<< HEAD
 #include <node/interface_ui.h>
 ||||||| parent of 0c192932448 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
 #include <node/ui_interface.h>
 =======
+||||||| parent of dc6e868f41f (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
+=======
+#include <node/chain.h>
+>>>>>>> dc6e868f41f (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
 #include <node/context.h>
 #include <node/ui_interface.h>
 >>>>>>> 0c192932448 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
@@ -186,12 +191,15 @@ void BaseIndex::ThreadSync()
             }
 
             CBlock block;
+            interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex);
             if (!ReadBlockFromDisk(block, pindex, consensus_params)) {
                 FatalError("%s: Failed to read block %s from disk",
                            __func__, pindex->GetBlockHash().ToString());
                 return;
+            } else {
+                block_info.data = &block;
             }
-            if (!WriteBlock(block, pindex)) {
+            if (!CustomAppend(block_info)) {
                 FatalError("%s: Failed to write block %s to index database",
                            __func__, pindex->GetBlockHash().ToString());
                 return;
@@ -279,8 +287,8 @@ void BaseIndex::BlockConnected(const std::shared_ptr<const CBlock>& block, const
             return;
         }
     }
-
-    if (WriteBlock(*block, pindex)) {
+    interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex, block.get());
+    if (CustomAppend(block_info)) {
         SetBestBlockIndex(pindex);
     } else {
         FatalError("%s: Failed to write block %s to index",
