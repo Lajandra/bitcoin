@@ -54,17 +54,23 @@ TxIndex::TxIndex(size_t n_cache_size, bool f_memory, bool f_wipe)
 
 TxIndex::~TxIndex() {}
 
-bool TxIndex::WriteBlock(const CBlock& block, const CBlockIndex* pindex)
+bool TxIndex::CustomAppend(const interfaces::BlockInfo& block)
 {
     // Exclude genesis block transaction because outputs are not spendable.
-    if (pindex->nHeight == 0) return true;
+    if (block.height == 0) return true;
 
+<<<<<<< HEAD
     CDiskTxPos pos{
         WITH_LOCK(::cs_main, return pindex->GetBlockPos()),
         GetSizeOfCompactSize(block.vtx.size())};
+||||||| parent of 6cd50b41413 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
+    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()));
+=======
+    CDiskTxPos pos({block.file_number, block.data_pos}, GetSizeOfCompactSize(block.data->vtx.size()));
+>>>>>>> 6cd50b41413 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
     std::vector<std::pair<uint256, CDiskTxPos>> vPos;
-    vPos.reserve(block.vtx.size());
-    for (const auto& tx : block.vtx) {
+    vPos.reserve(block.data->vtx.size());
+    for (const auto& tx : block.data->vtx) {
         vPos.emplace_back(tx->GetHash(), pos);
         pos.nTxOffset += ::GetSerializeSize(*tx, CLIENT_VERSION);
     }
