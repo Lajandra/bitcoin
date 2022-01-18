@@ -265,6 +265,14 @@ public:
         virtual void chainStateFlushed(const CBlockLocator& locator) {}
     };
 
+    struct NotifyOptions
+    {
+    };
+
+    //! Register handler for notifications if all blocks needed to sync from
+    //! locator are present. Return null if necessary blocks were pruned.
+    virtual std::unique_ptr<Handler> attachChain(std::shared_ptr<Notifications> notifications, const CBlockLocator& locator, const NotifyOptions& options) = 0;
+
     //! Register handler for notifications.
     virtual std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) = 0;
 

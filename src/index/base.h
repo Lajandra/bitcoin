@@ -94,6 +94,9 @@ protected:
 
     void ChainStateFlushed(const CBlockLocator& locator) override;
 
+    /// Return custom notification options for index.
+    [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
+
     /// Initialize internal state from the database and block index.
     [[nodiscard]] virtual bool CustomInit(const std::optional<interfaces::BlockKey>& block) { return true; }
 
