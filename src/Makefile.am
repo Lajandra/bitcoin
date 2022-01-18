@@ -878,6 +878,7 @@ libbitcoinkernel_la_SOURCES = \
   key.cpp \
   logging.cpp \
   node/blockstorage.cpp \
+  node/chain.cpp \
   node/chainstate.cpp \
   node/interface_ui.cpp \
   policy/feerate.cpp \
