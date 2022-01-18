@@ -18,7 +18,6 @@
 
 class ArgsManager;
 class CBlock;
-class CBlockIndex;
 class CBlockUndo;
 class CFeeRate;
 class CRPCCommand;
@@ -87,6 +86,8 @@ struct BlockInfo {
     unsigned data_pos = 0;
     const CBlock* data = nullptr;
     const CBlockUndo* undo_data = nullptr;
+    //! Block is from the tip of the chain (always true except when first calling attachChain and reading old blocks).
+    bool chain_tip = true;
 
     BlockInfo(const uint256& hash) : hash(hash) {}
 };
@@ -265,8 +266,13 @@ public:
         virtual void chainStateFlushed(const CBlockLocator& locator) {}
     };
 
-    //! Check if all blocks needed to sync from locator are present.
-    virtual bool checkBlocks(const CBlockIndex* locator_block) = 0;
+    struct NotifyOptions
+    {
+    };
+
+    //! Register handler for notifications if all blocks needed to sync from
+    //! locator are present. Return null if necessary blocks were pruned.
+    virtual std::unique_ptr<Handler> attachChain(std::shared_ptr<Notifications> notifications, const CBlockLocator& locator, const NotifyOptions& options) = 0;
 
     //! Register handler for notifications.
     virtual std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) = 0;
