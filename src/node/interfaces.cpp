@@ -661,6 +661,43 @@ public:
     {
         ::uiInterface.ShowProgress(title, progress, resume_possible);
     }
+    bool checkBlocks(const CBlockIndex* locator_block) override {
+        LOCK(::cs_main);
+        const CChain& active_chain = Assert(m_node.chainman)->ActiveChain();
+        bool prune_violation = false;
+        if (!locator_block) {
+            // make sure we have all block data back to the genesis
+            const CBlockIndex* block = active_chain.Tip();
+            while (block->pprev && (block->pprev->nStatus & BLOCK_HAVE_DATA)) {
+                block = block->pprev;
+            }
+            prune_violation = block != active_chain.Genesis();
+        }
+        // in case the index has a best block set and is not fully synced
+        // check if we have the required blocks to continue building the index
+        else {
+            const CBlockIndex* block_to_test = locator_block;
+            if (!active_chain.Contains(block_to_test)) {
+                // if the bestblock is not part of the mainchain, find the fork
+                // and make sure we have all data down to the fork
+                block_to_test = active_chain.FindFork(block_to_test);
+            }
+            const CBlockIndex* block = active_chain.Tip();
+            prune_violation = true;
+            // check backwards from the tip if we have all block data until we reach the indexes bestblock
+            while (block_to_test && block && (block->nStatus & BLOCK_HAVE_DATA)) {
+                if (block_to_test == block) {
+                    prune_violation = false;
+                    break;
+                }
+                // block->pprev must exist at this point, since block_to_test is part of the chain
+                // and thus must be encountered when going backwards from the tip
+                assert(block->pprev);
+                block = block->pprev;
+            }
+        }
+        return !prune_violation;
+    }
     std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) override
     {
         return std::make_unique<NotificationsHandlerImpl>(std::move(notifications));
