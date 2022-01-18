@@ -7,9 +7,11 @@
 
 #include <dbwrapper.h>
 #include <interfaces/chain.h>
+#include <interfaces/handler.h>
 #include <threadinterrupt.h>
 #include <validationinterface.h>
 
+class BaseIndexNotifications;
 class CBlock;
 class CBlockIndex;
 class CChainState;
@@ -28,7 +30,7 @@ struct IndexSummary {
  * CValidationInterface and ensures blocks are indexed sequentially according
  * to their position in the active chain.
  */
-class BaseIndex : public CValidationInterface
+class BaseIndex
 {
 protected:
     /**
@@ -86,13 +88,23 @@ private:
     /// Loop over disconnected blocks and call CustomRewind.
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
 
+    Mutex m_mutex;
+    friend class BaseIndexNotifications;
+    std::shared_ptr<BaseIndexNotifications> m_notifications GUARDED_BY(m_mutex);
+    std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
+
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     CChainState* m_chainstate{nullptr};
 
-    void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
+    /// Return whether to ignore stale, out-of-sync block connected event
+    bool IgnoreBlockConnected(const interfaces::BlockInfo& block);
 
-    void ChainStateFlushed(const CBlockLocator& locator) override;
+    /// Return whether to ignore stale, out-of-sync chain flushed event
+    bool IgnoreChainStateFlushed(const CBlockLocator& locator);
+
+    /// Return custom notification options for index.
+    [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
 
     /// Initialize internal state from the database and block index.
     [[nodiscard]] virtual bool CustomInit(const std::optional<uint256>& block, std::optional<int> height) { return true; }
