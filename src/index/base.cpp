@@ -34,6 +34,15 @@ static void FatalError(const char* fmt, const Args&... args)
     StartShutdown();
 }
 
+CBlockLocator GetLocator(interfaces::Chain& chain, const uint256& block_hash)
+{
+    CBlockLocator locator;
+    bool found = chain.findBlock(block_hash, interfaces::FoundBlock().locator(locator));
+    assert(found);
+    assert(!locator.IsNull());
+    return locator;
+}
+
 BaseIndex::DB::DB(const fs::path& path, size_t n_cache_size, bool f_memory, bool f_wipe, bool f_obfuscate) :
     CDBWrapper(path, n_cache_size, f_memory, f_wipe, f_obfuscate)
 {}
@@ -211,12 +220,17 @@ void BaseIndex::ThreadSync()
 bool BaseIndex::Commit()
 {
     CDBBatch batch(GetDB());
-    if (!CommitInternal(batch) || !GetDB().WriteBatch(batch)) {
+    bool success = CustomCommit(batch);
+    if (success) {
+        GetDB().WriteBestBlock(batch, GetLocator(*m_chain, m_best_block_index.load()->GetBlockHash()));
+    }
+    if (!success || !GetDB().WriteBatch(batch)) {
         return error("%s: Failed to commit latest %s state", __func__, GetName());
     }
     return true;
 }
 
+<<<<<<< HEAD
 bool BaseIndex::CommitInternal(CDBBatch& batch)
 {
     LOCK(cs_main);
@@ -229,6 +243,16 @@ bool BaseIndex::CommitInternal(CDBBatch& batch)
     return true;
 }
 
+||||||| parent of f631a1b16ac (indexes, refactor: Remove CChainState use in index CommitInternal method)
+bool BaseIndex::CommitInternal(CDBBatch& batch)
+{
+    LOCK(cs_main);
+    GetDB().WriteBestBlock(batch, m_chainstate->m_chain.GetLocator(m_best_block_index));
+    return true;
+}
+
+=======
+>>>>>>> f631a1b16ac (indexes, refactor: Remove CChainState use in index CommitInternal method)
 bool BaseIndex::Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip)
 {
     assert(current_tip == m_best_block_index);
