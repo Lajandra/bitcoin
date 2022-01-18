@@ -211,16 +211,15 @@ void BaseIndex::ThreadSync()
 bool BaseIndex::Commit()
 {
     CDBBatch batch(GetDB());
-    if (!CommitInternal(batch) || !GetDB().WriteBatch(batch)) {
+    bool success = CustomCommit(batch);
+    if (success) {
+        CBlockLocator locator;
+        m_chain->findBlock(m_best_block_index.load()->GetBlockHash(), interfaces::FoundBlock().locator(locator));
+        GetDB().WriteBestBlock(batch, locator);
+    }
+    if (!success || !GetDB().WriteBatch(batch)) {
         return error("%s: Failed to commit latest %s state", __func__, GetName());
     }
-    return true;
-}
-
-bool BaseIndex::CommitInternal(CDBBatch& batch)
-{
-    LOCK(cs_main);
-    GetDB().WriteBestBlock(batch, m_chainstate->m_chain.GetLocator(m_best_block_index));
     return true;
 }
 
