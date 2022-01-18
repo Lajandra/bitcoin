@@ -87,6 +87,8 @@ struct BlockInfo {
     unsigned undo_pos = 0;
     const CBlock* data = nullptr;
     const CBlockUndo* undo_data = nullptr;
+    //! Block is from the tip of the chain (always true except when first calling attachChain and reading old blocks).
+    bool chain_tip = true;
 
     BlockInfo(const uint256& hash) : hash(hash) {}
 };
