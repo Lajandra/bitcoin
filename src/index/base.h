@@ -82,9 +82,17 @@ private:
     /// to a chain reorganization), the index must halt until Commit succeeds or else it could end up
     /// getting corrupted.
     bool Commit();
+<<<<<<< HEAD
 
     virtual bool AllowPrune() const = 0;
 
+||||||| parent of 7f03da8d12b (indexes, refactor: Remove CBlockIndex* uses in index Rewind methods)
+=======
+
+    /// Loop over disconnected blocks and call CustomRewind.
+    bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
+
+>>>>>>> 7f03da8d12b (indexes, refactor: Remove CBlockIndex* uses in index Rewind methods)
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     CChainState* m_chainstate{nullptr};
@@ -105,7 +113,7 @@ protected:
 
     /// Rewind index to an earlier chain tip during a chain reorg. The tip must
     /// be an ancestor of the current best block.
-    virtual bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
+    [[nodiscard]] virtual bool CustomRewind(const interfaces::BlockKey& current_tip, const interfaces::BlockKey& new_tip) { return true; }
 
     virtual DB& GetDB() const = 0;
 
