@@ -7,6 +7,7 @@
 #include <interfaces/chain.h>
 #include <interfaces/handler.h>
 #include <node/blockstorage.h>
+#include <node/chain.h>
 #include <node/context.h>
 #include <node/ui_interface.h>
 #include <shutdown.h>
@@ -207,12 +208,15 @@ void BaseIndex::ThreadSync()
             }
 
             CBlock block;
+            interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex);
             if (!ReadBlockFromDisk(block, pindex, consensus_params)) {
                 FatalError("%s: Failed to read block %s from disk",
                            __func__, pindex->GetBlockHash().ToString());
                 return;
+            } else {
+                block_info.data = &block;
             }
-            if (!WriteBlock(block, pindex)) {
+            if (!CustomAppend(block_info)) {
                 FatalError("%s: Failed to write block %s to index database",
                            __func__, pindex->GetBlockHash().ToString());
                 return;
@@ -299,8 +303,8 @@ void BaseIndex::BlockConnected(const CBlock* block, const CBlockIndex* pindex)
             return;
         }
     }
-
-    if (WriteBlock(*block, pindex)) {
+    interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex, block);
+    if (CustomAppend(block_info)) {
         m_best_block_index = pindex;
     } else {
         FatalError("%s: Failed to write block %s to index",
