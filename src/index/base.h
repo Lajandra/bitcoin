@@ -92,7 +92,13 @@ private:
     /// Loop over disconnected blocks and call CustomRewind.
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
 
+<<<<<<< HEAD
 >>>>>>> 7f03da8d12b (indexes, refactor: Remove CBlockIndex* uses in index Rewind methods)
+||||||| parent of 8cb6c143805 (indexes, refactor: Remove index Init method)
+=======
+    friend class BaseIndexNotifications;
+
+>>>>>>> 8cb6c143805 (indexes, refactor: Remove index Init method)
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     CChainState* m_chainstate{nullptr};
@@ -100,6 +106,9 @@ protected:
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
 
     void ChainStateFlushed(const CBlockLocator& locator) override;
+
+    /// Return custom notification options for index.
+    [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
 
     /// Initialize internal state from the database and block index.
     [[nodiscard]] virtual bool CustomInit(const std::optional<interfaces::BlockKey>& block) { return true; }
