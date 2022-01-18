@@ -39,7 +39,7 @@ private:
 protected:
     bool CustomInit(const std::optional<interfaces::BlockKey>& block) override;
 
-    bool WriteBlock(const CBlock& block, const CBlockIndex* pindex) override;
+    bool CustomAppend(const interfaces::BlockInfo& block) override;
 
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip) override;
 
