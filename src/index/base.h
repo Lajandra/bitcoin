@@ -7,9 +7,11 @@
 
 #include <dbwrapper.h>
 #include <interfaces/chain.h>
+#include <interfaces/handler.h>
 #include <threadinterrupt.h>
 #include <validationinterface.h>
 
+class BaseIndexNotifications;
 class CBlock;
 class CBlockIndex;
 class CChainState;
@@ -87,16 +89,13 @@ private:
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
 
     Mutex m_mutex;
+    std::shared_ptr<BaseIndexNotifications> m_notifications GUARDED_BY(m_mutex);
     std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
     friend class BaseIndexNotifications;
 
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     CChainState* m_chainstate{nullptr};
-
-    void BlockConnected(const CBlock* block, const CBlockIndex* pindex);
-
-    void ChainStateFlushed(const CBlockLocator& locator);
 
     /// Return custom notification options for index.
     [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }

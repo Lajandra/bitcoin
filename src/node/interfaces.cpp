@@ -706,7 +706,8 @@ public:
     {
         ::uiInterface.ShowProgress(title, progress, resume_possible);
     }
-    bool checkBlocks(const CBlockIndex* locator_block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
+    bool checkBlocks(const CBlockIndex* locator_block) override {
+        LOCK(::cs_main);
         const CChain& active_chain = Assert(m_node.chainman)->ActiveChain();
         bool prune_violation = false;
         if (!locator_block) {
@@ -773,7 +774,6 @@ public:
         const CBlockIndex* locator_block = locator.IsNull() ? nullptr : active.FindForkInGlobalIndex(locator);
         block_info.emplace(MakeBlockInfo(locator_block));
         block_info->chain_tip = locator_block == active.m_chain.Tip();
-        if (!block_info->chain_tip && !checkBlocks(locator_block)) return nullptr;
         handler = std::make_unique<NotificationsHandlerImpl>(notifications, options);
         assert(!handler->m_thread_sync.joinable());
         handler->m_thread_sync = std::thread(&util::TraceThread, "FUCKOTHREAD", // options.thread_name,
