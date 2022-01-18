@@ -6,6 +6,7 @@
 #include <common/args.h>
 #include <index/base.h>
 #include <interfaces/chain.h>
+#include <interfaces/handler.h>
 #include <kernel/chain.h>
 #include <logging.h>
 #include <node/abort.h>
@@ -44,6 +45,30 @@ CBlockLocator GetLocator(interfaces::Chain& chain, const uint256& block_hash)
     return locator;
 }
 
+class BaseIndexNotifications : public interfaces::Chain::Notifications
+{
+public:
+    BaseIndexNotifications(BaseIndex& index) : m_index(index) {}
+    void blockConnected(const interfaces::BlockInfo& block) override;
+
+    BaseIndex& m_index;
+};
+
+void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
+{
+    const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
+    if (!block.data) {
+        // Null block.data means block is the starting block at the beginning of
+        // the sync. Set the best block to this starting block, and latch
+        // m_synced to true if there are no blocks following it.
+        assert(!m_index.m_best_block_index && !m_index.m_synced);
+        m_index.SetBestBlockIndex(pindex);
+        if (block.chain_tip) {
+            m_index.m_synced = true;
+        }
+    }
+}
+
 BaseIndex::DB::DB(const fs::path& path, size_t n_cache_size, bool f_memory, bool f_wipe, bool f_obfuscate) :
     CDBWrapper{DBParams{
         .path = path,
@@ -77,6 +102,7 @@ BaseIndex::~BaseIndex()
     Stop();
 }
 
+<<<<<<< HEAD
 bool BaseIndex::Init()
 {
     // m_chainstate member gives indexing code access to node internals. It is
@@ -164,6 +190,36 @@ bool BaseIndex::Init()
     return true;
 }
 
+||||||| parent of 42ba163fcdaa (indexes, refactor: Remove index Init method)
+bool BaseIndex::Init()
+{
+    CBlockLocator locator;
+    if (!GetDB().ReadBestBlock(locator)) {
+        locator.SetNull();
+    }
+
+    LOCK(cs_main);
+    CChain& active_chain = m_chainstate->m_chain;
+    if (locator.IsNull()) {
+        SetBestBlockIndex(nullptr);
+    } else {
+        SetBestBlockIndex(m_chainstate->FindForkInGlobalIndex(locator));
+    }
+
+    // Note: this will latch to true immediately if the user starts up with an empty
+    // datadir and an index enabled. If this is the case, indexation will happen solely
+    // via `BlockConnected` signals until, possibly, the next restart.
+    m_synced = m_best_block_index.load() == active_chain.Tip();
+    if (!m_synced) {
+        if (!m_chain->hasDataFromTipDown(m_best_block_index.load())) {
+            return InitError(strprintf(Untranslated("%s best block of the index goes beyond pruned data. Please disable the index or reindex (which will download the whole blockchain again)"), GetName()));
+        }
+    }
+    return true;
+}
+
+=======
+>>>>>>> 42ba163fcdaa (indexes, refactor: Remove index Init method)
 static const CBlockIndex* NextSyncBlock(const CBlockIndex* pindex_prev, CChain& chain) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
@@ -411,7 +467,43 @@ void BaseIndex::Interrupt()
 
 bool BaseIndex::StartBackgroundSync()
 {
+<<<<<<< HEAD
     if (!m_init) throw std::logic_error("Error: Cannot start a non-initialized index");
+||||||| parent of 42ba163fcdaa (indexes, refactor: Remove index Init method)
+    // m_chainstate member gives indexing code access to node internals. It is
+    // removed in followup https://github.com/bitcoin/bitcoin/pull/24230
+    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
+    // Need to register this ValidationInterface before running Init(), so that
+    // callbacks are not missed if Init sets m_synced to true.
+    RegisterValidationInterface(this);
+    if (!Init()) return false;
+
+    const CBlockIndex* index = m_best_block_index.load();
+    if (!CustomInit(index ? std::make_optional(interfaces::BlockKey{index->GetBlockHash(), index->nHeight}) : std::nullopt)) {
+        return false;
+    }
+=======
+    // m_chainstate member gives indexing code access to node internals. It is
+    // removed in followup https://github.com/bitcoin/bitcoin/pull/24230
+    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
+    RegisterValidationInterface(this);
+    CBlockLocator locator;
+    if (!GetDB().ReadBestBlock(locator)) {
+        locator.SetNull();
+    }
+
+    auto options = CustomOptions();
+    auto notifications = std::make_shared<BaseIndexNotifications>(*this);
+    auto handler = m_chain->attachChain(notifications, locator, options);
+    if (!handler) {
+        return InitError(strprintf(Untranslated("%s best block of the index goes beyond pruned data. Please disable the index or reindex (which will download the whole blockchain again)"), GetName()));
+    }
+
+    const CBlockIndex* index = m_best_block_index.load();
+    if (!CustomInit(index ? std::make_optional(interfaces::BlockKey{index->GetBlockHash(), index->nHeight}) : std::nullopt)) {
+        return false;
+    }
+>>>>>>> 42ba163fcdaa (indexes, refactor: Remove index Init method)
 
     m_thread_sync = std::thread(&util::TraceThread, GetName(), [this] { ThreadSync(); });
     return true;

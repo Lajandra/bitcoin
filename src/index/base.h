@@ -94,9 +94,15 @@ private:
 
     virtual bool AllowPrune() const = 0;
 
+<<<<<<< HEAD
     template <typename... Args>
     void FatalErrorf(const char* fmt, const Args&... args);
 
+||||||| parent of 42ba163fcdaa (indexes, refactor: Remove index Init method)
+=======
+    friend class BaseIndexNotifications;
+
+>>>>>>> 42ba163fcdaa (indexes, refactor: Remove index Init method)
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     Chainstate* m_chainstate{nullptr};
@@ -105,6 +111,9 @@ protected:
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
 
     void ChainStateFlushed(const CBlockLocator& locator) override;
+
+    /// Return custom notification options for index.
+    [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
 
     /// Initialize internal state from the database and block index.
     [[nodiscard]] virtual bool CustomInit(const std::optional<interfaces::BlockKey>& block) { return true; }
