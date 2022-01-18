@@ -7,9 +7,11 @@
 
 #include <dbwrapper.h>
 #include <interfaces/chain.h>
+#include <interfaces/handler.h>
 #include <threadinterrupt.h>
 #include <validationinterface.h>
 
+class BaseIndexNotifications;
 class CBlock;
 class CBlockIndex;
 class CChainState;
@@ -24,11 +26,11 @@ struct IndexSummary {
 };
 
 /**
- * Base class for indices of blockchain data. This implements
- * CValidationInterface and ensures blocks are indexed sequentially according
- * to their position in the active chain.
+ * Base class for indices of blockchain data. This handles block connected and
+ * disconnected notifications and ensures blocks are indexed sequentially
+ * according to their position in the active chain.
  */
-class BaseIndex : public CValidationInterface
+class BaseIndex
 {
 protected:
     /**
@@ -93,19 +95,28 @@ private:
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 7f03da8d12b (indexes, refactor: Remove CBlockIndex* uses in index Rewind methods)
 ||||||| parent of 8cb6c143805 (indexes, refactor: Remove index Init method)
 =======
+||||||| parent of dd832e81e91 (indexes, refactor: Remove index validation interface and block locator code)
+=======
+    Mutex m_mutex;
+>>>>>>> dd832e81e91 (indexes, refactor: Remove index validation interface and block locator code)
     friend class BaseIndexNotifications;
+    std::shared_ptr<BaseIndexNotifications> m_notifications GUARDED_BY(m_mutex);
+    std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
 
 >>>>>>> 8cb6c143805 (indexes, refactor: Remove index Init method)
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     CChainState* m_chainstate{nullptr};
 
-    void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
+    /// Return whether to ignore stale, out-of-sync block connected event
+    bool IgnoreBlockConnected(const interfaces::BlockInfo& block);
 
-    void ChainStateFlushed(const CBlockLocator& locator) override;
+    /// Return whether to ignore stale, out-of-sync chain flushed event
+    bool IgnoreChainStateFlushed(const CBlockLocator& locator);
 
     /// Return custom notification options for index.
     [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
