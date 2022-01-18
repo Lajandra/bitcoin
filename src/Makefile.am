@@ -813,6 +813,7 @@ bitcoin_chainstate_SOURCES = \
   logging.cpp \
   netaddress.cpp \
   node/blockstorage.cpp \
+  node/chain.cpp \
   node/chainstate.cpp \
   node/coinstats.cpp \
   node/ui_interface.cpp \
