@@ -55,8 +55,20 @@ public:
 
 void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
 {
+    const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
+    if (!m_index.m_synced && !block.data) {
+        // Before sync, attachChain will send an initial blockConnected event
+        // without any block data, indicating the starting block (based on the
+        // index locator) where the index was last synced. If the index is
+        // already synced at this point, block.chain_tip will be true, and
+        // m_synced can latch to true.
+        assert(!m_index.m_best_block_index);
+        m_index.m_best_block_index = pindex;
+        if (block.chain_tip) {
+            m_index.m_synced = true;
+        }
+   }
    if (block.data) {
-       const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
        m_index.BlockConnected(block.data, pindex);
    }
 }
@@ -91,29 +103,6 @@ BaseIndex::~BaseIndex()
 {
     Interrupt();
     Stop();
-}
-
-bool BaseIndex::Init()
-{
-    CBlockLocator locator;
-    if (!GetDB().ReadBestBlock(locator)) {
-        locator.SetNull();
-    }
-
-    LOCK(cs_main);
-    CChain& active_chain = m_chainstate->m_chain;
-    if (locator.IsNull()) {
-        m_best_block_index = nullptr;
-    } else {
-        m_best_block_index = m_chainstate->FindForkInGlobalIndex(locator);
-    }
-    m_synced = m_best_block_index.load() == active_chain.Tip();
-    if (!m_synced) {
-        if (!m_chain->checkBlocks(m_best_block_index.load())) {
-            return InitError(strprintf(Untranslated("%s best block of the index goes beyond pruned data. Please disable the index or reindex (which will download the whole blockchain again)"), GetName()));
-        }
-    }
-    return true;
 }
 
 static const CBlockIndex* NextSyncBlock(const CBlockIndex* pindex_prev, CChain& chain) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -185,6 +174,7 @@ void BaseIndex::ThreadSync()
 
             CBlock block;
             interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex);
+            block_info.chain_tip = false;
             if (!ReadBlockFromDisk(block, pindex, consensus_params)) {
                 FatalError("%s: Failed to read block %s from disk",
                            __func__, pindex->GetBlockHash().ToString());
@@ -355,7 +345,17 @@ bool BaseIndex::Start()
     // m_chainstate member gives indexing code access to node internals. It
     // will be removed in upcoming commit
     m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
-    if (!Init()) return false;
+    CBlockLocator locator;
+    if (!GetDB().ReadBestBlock(locator)) {
+        locator.SetNull();
+    }
+
+    auto options = CustomOptions();
+    auto notifications = std::make_shared<BaseIndexNotifications>(*this);
+    auto handler = m_chain->attachChain(notifications, locator, options);
+    if (!handler) {
+        return InitError(strprintf(Untranslated("%s best block of the index goes beyond pruned data. Please disable the index or reindex (which will download the whole blockchain again)"), GetName()));
+    }
 
     const CBlockIndex* index = m_best_block_index.load();
     if (!CustomInit(index ? std::make_optional(interfaces::BlockKey{index->GetBlockHash(), index->nHeight}) : std::nullopt)) {
