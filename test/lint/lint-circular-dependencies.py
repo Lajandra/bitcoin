@@ -14,6 +14,14 @@ import sys
 EXPECTED_CIRCULAR_DEPENDENCIES = (
     "chainparamsbase -> util/system -> chainparamsbase",
     "node/blockstorage -> validation -> node/blockstorage",
+<<<<<<< HEAD
+||||||| parent of 5d80dc9a356 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
+    "index/blockfilterindex -> node/blockstorage -> validation -> index/blockfilterindex",
+    "index/base -> validation -> index/blockfilterindex -> index/base",
+=======
+    "index/blockfilterindex -> validation -> index/blockfilterindex",
+    "index/base -> node/context -> net_processing -> index/blockfilterindex -> index/base",
+>>>>>>> 5d80dc9a356 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
     "index/coinstatsindex -> node/coinstats -> index/coinstatsindex",
     "policy/fees -> txmempool -> policy/fees",
     "qt/addresstablemodel -> qt/walletmodel -> qt/addresstablemodel",
