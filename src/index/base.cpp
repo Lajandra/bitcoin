@@ -44,6 +44,8 @@ public:
     void chainStateFlushed(const CBlockLocator& locator) override;
 
     BaseIndex& m_index;
+    int64_t m_last_log_time = 0;
+    int64_t m_last_locator_write_time = 0;
 };
 
 void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
@@ -144,9 +146,8 @@ void BaseIndex::ThreadSync()
     const CBlockIndex* pindex = m_best_block_index.load();
     if (!m_synced) {
         auto& consensus_params = Params().GetConsensus();
+        auto notifications = WITH_LOCK(m_mutex, return m_notifications);
 
-        int64_t last_log_time = 0;
-        int64_t last_locator_write_time = 0;
         while (true) {
             if (m_interrupt) {
                 m_best_block_index = pindex;
@@ -176,15 +177,15 @@ void BaseIndex::ThreadSync()
             }
 
             int64_t current_time = GetTime();
-            if (last_log_time + SYNC_LOG_INTERVAL < current_time) {
+            if (notifications->m_last_log_time + SYNC_LOG_INTERVAL < current_time) {
                 LogPrintf("Syncing %s with block chain from height %d\n",
                           GetName(), pindex->nHeight);
-                last_log_time = current_time;
+                notifications->m_last_log_time = current_time;
             }
 
-            if (last_locator_write_time + SYNC_LOCATOR_WRITE_INTERVAL < current_time) {
+            if (notifications->m_last_locator_write_time + SYNC_LOCATOR_WRITE_INTERVAL < current_time) {
                 m_best_block_index = pindex;
-                last_locator_write_time = current_time;
+                notifications->m_last_locator_write_time = current_time;
                 // No need to handle errors in Commit. See rationale above.
                 Commit();
             }
