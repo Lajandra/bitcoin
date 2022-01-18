@@ -241,6 +241,19 @@ bool BaseIndex::Commit()
     if (!ok) {
         return error("%s: Failed to commit latest %s state", __func__, GetName());
     }
+<<<<<<< HEAD
+||||||| parent of 3c82fa533a3 (indexes, refactor: Remove CChainState use in index CommitInternal method)
+    GetDB().WriteBestBlock(batch, m_chainstate->m_chain.GetLocator(m_best_block_index));
+=======
+    CDBBatch batch(GetDB());
+    bool success = CustomCommit(batch);
+    if (success) {
+        GetDB().WriteBestBlock(batch, GetLocator(*m_chain, m_best_block_index.load()->GetBlockHash()));
+    }
+    if (!success || !GetDB().WriteBatch(batch)) {
+        return error("%s: Failed to commit latest %s state", __func__, GetName());
+    }
+>>>>>>> 3c82fa533a3 (indexes, refactor: Remove CChainState use in index CommitInternal method)
     return true;
 }
 
