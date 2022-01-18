@@ -83,6 +83,9 @@ private:
     /// getting corrupted.
     bool Commit();
 
+    /// Loop over disconnected blocks and call CustomRewind.
+    bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
+
     Mutex m_mutex;
     std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
     friend class BaseIndexNotifications;
@@ -107,7 +110,7 @@ protected:
 
     /// Rewind index to an earlier chain tip during a chain reorg. The tip must
     /// be an ancestor of the current best block.
-    virtual bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
+    [[nodiscard]] virtual bool CustomRewind(const interfaces::BlockKey& current_tip, const interfaces::BlockKey& new_tip) { return true; }
 
     virtual DB& GetDB() const = 0;
 
