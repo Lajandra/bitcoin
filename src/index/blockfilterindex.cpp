@@ -233,7 +233,13 @@ bool BlockFilterIndex::CustomAppend(const interfaces::BlockInfo& block)
             return false;
         }
 
+<<<<<<< HEAD
         uint256 expected_block_hash = *Assert(block.prev_hash);
+||||||| parent of 848bdd1b330 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
+        uint256 expected_block_hash = pindex->pprev->GetBlockHash();
+=======
+        uint256 expected_block_hash = *block.prev_hash;
+>>>>>>> 848bdd1b330 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
         if (read_out.first != expected_block_hash) {
             return error("%s: previous block header belongs to unexpected block %s; expected %s",
                          __func__, read_out.first.ToString(), expected_block_hash.ToString());
@@ -242,7 +248,13 @@ bool BlockFilterIndex::CustomAppend(const interfaces::BlockInfo& block)
         prev_header = read_out.second.header;
     }
 
+<<<<<<< HEAD
     BlockFilter filter(m_filter_type, *Assert(block.data), block_undo);
+||||||| parent of 848bdd1b330 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
+    BlockFilter filter(m_filter_type, block, block_undo);
+=======
+    BlockFilter filter(m_filter_type, *block.data, block_undo);
+>>>>>>> 848bdd1b330 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
 
     size_t bytes_written = WriteFilterToDisk(m_next_filter_pos, filter);
     if (bytes_written == 0) return false;

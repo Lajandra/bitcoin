@@ -138,7 +138,13 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
             return false;
         }
 
+<<<<<<< HEAD
         uint256 expected_block_hash{*Assert(block.prev_hash)};
+||||||| parent of 848bdd1b330 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
+        uint256 expected_block_hash{pindex->pprev->GetBlockHash()};
+=======
+        uint256 expected_block_hash{*block.prev_hash};
+>>>>>>> 848bdd1b330 (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
         if (read_out.first != expected_block_hash) {
             LogPrintf("WARNING: previous block header belongs to unexpected block %s; expected %s\n",
                       read_out.first.ToString(), expected_block_hash.ToString());
