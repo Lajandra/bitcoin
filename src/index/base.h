@@ -7,11 +7,13 @@
 
 #include <dbwrapper.h>
 #include <interfaces/chain.h>
+#include <interfaces/handler.h>
 #include <util/threadinterrupt.h>
 #include <validationinterface.h>
 
 #include <string>
 
+class BaseIndexNotifications;
 class CBlock;
 class CBlockIndex;
 class Chainstate;
@@ -27,11 +29,11 @@ struct IndexSummary {
 };
 
 /**
- * Base class for indices of blockchain data. This implements
- * CValidationInterface and ensures blocks are indexed sequentially according
- * to their position in the active chain.
+ * Base class for indices of blockchain data. This handles block connected and
+ * disconnected notifications and ensures blocks are indexed sequentially
+ * according to their position in the active chain.
  */
-class BaseIndex : public CValidationInterface
+class BaseIndex
 {
 protected:
     /**
@@ -95,12 +97,19 @@ private:
     virtual bool AllowPrune() const = 0;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     template <typename... Args>
     void FatalErrorf(const char* fmt, const Args&... args);
 
 ||||||| parent of 42ba163fcdaa (indexes, refactor: Remove index Init method)
 =======
+||||||| parent of 7eb0aa6c9846 (indexes, refactor: Remove index validationinterface hooks)
+=======
+    Mutex m_mutex;
+>>>>>>> 7eb0aa6c9846 (indexes, refactor: Remove index validationinterface hooks)
     friend class BaseIndexNotifications;
+    std::shared_ptr<BaseIndexNotifications> m_notifications GUARDED_BY(m_mutex);
+    std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
 
 >>>>>>> 42ba163fcdaa (indexes, refactor: Remove index Init method)
 protected:
@@ -108,9 +117,11 @@ protected:
     Chainstate* m_chainstate{nullptr};
     const std::string m_name;
 
-    void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
+    /// Return whether to ignore stale, out-of-sync block connected event
+    bool IgnoreBlockConnected(const interfaces::BlockInfo& block);
 
-    void ChainStateFlushed(const CBlockLocator& locator) override;
+    /// Return whether to ignore stale, out-of-sync chain flushed event
+    bool IgnoreChainStateFlushed(const CBlockLocator& locator);
 
     /// Return custom notification options for index.
     [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
@@ -147,22 +158,32 @@ public:
     /// sync once and only needs to process blocks in the ValidationInterface
     /// queue. If the index is catching up from far behind, this method does
     /// not block and immediately returns false.
-    bool BlockUntilSyncedToCurrentChain() const LOCKS_EXCLUDED(::cs_main);
+    bool BlockUntilSyncedToCurrentChain() const LOCKS_EXCLUDED(::cs_main) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    void Interrupt();
+    void Interrupt() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
+<<<<<<< HEAD
     /// Initializes the sync state and registers the instance to the
     /// validation interface so that it stays in sync with blockchain updates.
     [[nodiscard]] bool Init();
 
     /// Starts the initial sync process.
     [[nodiscard]] bool StartBackgroundSync();
+||||||| parent of 7eb0aa6c9846 (indexes, refactor: Remove index validationinterface hooks)
+    /// Start initializes the sync state and registers the instance as a
+    /// ValidationInterface so that it stays in sync with blockchain updates.
+    [[nodiscard]] bool Start();
+=======
+    /// Start initializes the sync state and registers the instance as a
+    /// ValidationInterface so that it stays in sync with blockchain updates.
+    [[nodiscard]] bool Start() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+>>>>>>> 7eb0aa6c9846 (indexes, refactor: Remove index validationinterface hooks)
 
     /// Stops the instance from staying in sync with blockchain updates.
-    void Stop();
+    void Stop() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     /// Get a summary of the index and its state.
-    IndexSummary GetSummary() const;
+    IndexSummary GetSummary() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 };
 
 #endif // BITCOIN_INDEX_BASE_H
