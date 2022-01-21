@@ -35,6 +35,15 @@ static void FatalError(const char* fmt, const Args&... args)
     StartShutdown();
 }
 
+CBlockLocator GetLocator(interfaces::Chain& chain, const uint256& block_hash)
+{
+    CBlockLocator locator;
+    bool found = chain.findBlock(block_hash, interfaces::FoundBlock().locator(locator));
+    assert(found);
+    assert(!locator.IsNull());
+    return locator;
+}
+
 class BaseIndexNotifications : public interfaces::Chain::Notifications
 {
 public:
@@ -91,7 +100,7 @@ void BaseIndexNotifications::chainStateFlushed(const CBlockLocator& locator)
     // No need to handle errors in Commit. If it fails, the error will be already be logged. The
     // best way to recover is to continue, as index cannot be corrupted by a missed commit to disk
     // for an advanced index state.
-    m_index.Commit();
+    m_index.Commit(locator);
 }
 
 BaseIndex::DB::DB(const fs::path& path, size_t n_cache_size, bool f_memory, bool f_wipe, bool f_obfuscate) :
@@ -156,7 +165,7 @@ void BaseIndex::ThreadSync()
                 // No need to handle errors in Commit. If it fails, the error will be already be
                 // logged. The best way to recover is to continue, as index cannot be corrupted by
                 // a missed commit to disk for an advanced index state.
-                Commit();
+                Commit(GetLocator(*m_chain, pindex->GetBlockHash()));
                 return;
             }
 
@@ -167,7 +176,7 @@ void BaseIndex::ThreadSync()
                     m_best_block_index = pindex;
                     m_synced = true;
                     // No need to handle errors in Commit. See rationale above.
-                    Commit();
+                    Commit(GetLocator(*m_chain, pindex->GetBlockHash()));
                     break;
                 }
                 if (pindex_next->pprev != pindex && !Rewind(pindex, pindex_next->pprev)) {
@@ -189,7 +198,7 @@ void BaseIndex::ThreadSync()
                 m_best_block_index = pindex;
                 last_locator_write_time = current_time;
                 // No need to handle errors in Commit. See rationale above.
-                Commit();
+                Commit(GetLocator(*m_chain, pindex->GetBlockHash()));
             }
 
             CBlock block;
@@ -217,13 +226,11 @@ void BaseIndex::ThreadSync()
     }
 }
 
-bool BaseIndex::Commit()
+bool BaseIndex::Commit(const CBlockLocator& locator)
 {
     CDBBatch batch(GetDB());
     bool success = CustomCommit(batch);
     if (success) {
-        CBlockLocator locator;
-        m_chain->findBlock(m_best_block_index.load()->GetBlockHash(), interfaces::FoundBlock().locator(locator));
         GetDB().WriteBestBlock(batch, locator);
     }
     if (!success || !GetDB().WriteBatch(batch)) {
@@ -247,7 +254,7 @@ bool BaseIndex::Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_ti
     // In case we reorg beyond the pruned depth, ReadBlockFromDisk would
     // throw and lead to a graceful shutdown
     m_best_block_index = new_tip;
-    if (!Commit()) {
+    if (!Commit(GetLocator(*m_chain, new_tip->GetBlockHash()))) {
         // If commit fails, revert the best block index to avoid corruption.
         m_best_block_index = current_tip;
         return false;
