@@ -83,6 +83,7 @@ private:
     /// from further behind on reboot. If the new state is not a successor of the previous state (due
     /// to a chain reorganization), the index must halt until Commit succeeds or else it could end up
     /// getting corrupted.
+<<<<<<< HEAD
     bool Commit();
 <<<<<<< HEAD
 
@@ -90,6 +91,11 @@ private:
 
 ||||||| parent of 7f03da8d12b (indexes, refactor: Remove CBlockIndex* uses in index Rewind methods)
 =======
+||||||| parent of 4389f0cdc8a (indexes, refactor: Add Commit CBlockLocator& argument)
+    bool Commit();
+=======
+    bool Commit(const CBlockLocator& locator);
+>>>>>>> 4389f0cdc8a (indexes, refactor: Add Commit CBlockLocator& argument)
 
     /// Loop over disconnected blocks and call CustomRewind.
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
