@@ -34,9 +34,11 @@ private:
     CAmount m_total_unspendables_scripts{0};
     CAmount m_total_unspendables_unclaimed_rewards{0};
 
-    bool ReverseBlock(const CBlock& block, const CBlockIndex* pindex);
+    bool ReverseBlock(const interfaces::BlockInfo& block);
 
 protected:
+    interfaces::Chain::NotifyOptions CustomOptions() override;
+
     bool CustomInit(const std::optional<interfaces::BlockKey>& block) override;
 
 <<<<<<< HEAD
@@ -49,7 +51,7 @@ protected:
     bool CustomAppend(const interfaces::BlockInfo& block) override;
 >>>>>>> 3baddb9dfed (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
 
-    bool CustomRewind(const interfaces::BlockKey& current_tip, const interfaces::BlockKey& new_tip) override;
+    bool CustomRemove(const interfaces::BlockInfo& block) override;
 
     BaseIndex::DB& GetDB() const override { return *m_db; }
 
