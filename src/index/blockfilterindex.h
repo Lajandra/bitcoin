@@ -45,7 +45,7 @@ protected:
 
     bool CustomAppend(const interfaces::BlockInfo& block) override;
 
-    bool CustomRewind(const uint256& current_hash, int current_height, const uint256& new_hash, int new_height) override;
+    bool CustomRemove(const interfaces::BlockInfo& block) override;
 
     BaseIndex::DB& GetDB() const override { return *m_db; }
 
