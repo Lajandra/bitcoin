@@ -13,6 +13,7 @@
 
 #include <string>
 
+class BaseIndexNotifications;
 class CBlock;
 class CBlockIndex;
 class Chainstate;
@@ -73,6 +74,7 @@ private:
 
     Mutex m_mutex;
     friend class BaseIndexNotifications;
+    std::shared_ptr<BaseIndexNotifications> m_notifications GUARDED_BY(m_mutex);
     std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
 
     /// Sync the index with the block index starting from the current best block.
@@ -80,7 +82,7 @@ private:
     /// interrupted with m_interrupt. Once the index gets in sync, the m_synced
     /// flag is set and the BlockConnected ValidationInterface callback takes
     /// over and the sync thread exits.
-    void ThreadSync();
+    void ThreadSync() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     /// Write the current index state (eg. chain block locator and subclass-specific items) to disk.
     ///
@@ -151,7 +153,7 @@ public:
     /// not block and immediately returns false.
     bool BlockUntilSyncedToCurrentChain() const LOCKS_EXCLUDED(::cs_main);
 
-    void Interrupt();
+    void Interrupt() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     /// Initializes the sync state and registers the instance to the
     /// validation interface so that it stays in sync with blockchain updates.
