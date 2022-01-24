@@ -19,8 +19,6 @@ using kernel::CCoinsStats;
 using kernel::GetBogoSize;
 using kernel::TxOutSer;
 
-using node::UndoReadFromDisk;
-
 static constexpr uint8_t DB_BLOCK_HASH{'s'};
 static constexpr uint8_t DB_BLOCK_HEIGHT{'t'};
 static constexpr uint8_t DB_MUHASH{'M'};
@@ -115,19 +113,11 @@ CoinStatsIndex::CoinStatsIndex(std::unique_ptr<interfaces::Chain> chain, size_t 
 
 bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
 {
-    CBlockUndo block_undo;
     const CAmount block_subsidy{GetBlockSubsidy(block.height, Params().GetConsensus())};
     m_total_subsidy += block_subsidy;
 
     // Ignore genesis block
     if (block.height > 0) {
-        // pindex variable gives indexing code access to node internals. It
-        // will be removed in upcoming commit
-        const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_chainstate->m_blockman.LookupBlockIndex(block.hash));
-        if (!UndoReadFromDisk(block_undo, pindex)) {
-            return false;
-        }
-
         std::pair<uint256, DBVal> read_out;
         if (!m_db->Read(DBHeightKey(block.height - 1), read_out)) {
             return false;
@@ -146,11 +136,12 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
 
         // Add the new utxos created from the block
         assert(block.data);
+        assert(block.undo_data);
         for (size_t i = 0; i < block.data->vtx.size(); ++i) {
             const auto& tx{block.data->vtx.at(i)};
 
             // Skip duplicate txid coinbase transactions (BIP30).
-            if (IsBIP30Unspendable(*pindex) && tx->IsCoinBase()) {
+            if (IsBIP30Unspendable(block.hash, block.height) && tx->IsCoinBase()) {
                 m_total_unspendable_amount += block_subsidy;
                 m_total_unspendables_bip30 += block_subsidy;
                 continue;
@@ -183,7 +174,7 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
 
             // The coinbase tx has no undo data since no former output is spent
             if (!tx->IsCoinBase()) {
-                const auto& tx_undo{block_undo.vtxundo.at(i - 1)};
+                const auto& tx_undo{block.undo_data->vtxundo.at(i - 1)};
 
                 for (size_t j = 0; j < tx_undo.vprevout.size(); ++j) {
                     Coin coin{tx_undo.vprevout[j]};
@@ -382,6 +373,7 @@ bool CoinStatsIndex::CustomCommit(CDBBatch& batch)
 interfaces::Chain::NotifyOptions CoinStatsIndex::CustomOptions()
 {
     interfaces::Chain::NotifyOptions options;
+    options.connect_undo_data = true;
     options.disconnect_data = true;
     options.disconnect_undo_data = true;
     return options;
