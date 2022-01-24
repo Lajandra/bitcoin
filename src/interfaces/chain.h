@@ -263,6 +263,8 @@ public:
 
     struct NotifyOptions
     {
+        //! Include undo data with block disconnected notifications.
+        bool disconnect_undo_data = false;
     };
 
     //! Register handler for notifications if all blocks needed to sync from

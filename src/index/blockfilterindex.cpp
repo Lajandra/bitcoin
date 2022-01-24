@@ -280,7 +280,7 @@ static bool CopyHeightIndexToHashIndex(CDBIterator& db_it, CDBBatch& batch,
     return true;
 }
 
-bool BlockFilterIndex::CustomRewind(const uint256& current_hash, int current_height, const uint256& new_hash, int new_height)
+bool BlockFilterIndex::CustomRemove(const interfaces::BlockInfo& block)
 {
     CDBBatch batch(*m_db);
     std::unique_ptr<CDBIterator> db_it(m_db->NewIterator());
@@ -288,7 +288,7 @@ bool BlockFilterIndex::CustomRewind(const uint256& current_hash, int current_hei
     // During a reorg, we need to copy all filters for blocks that are getting disconnected from the
     // height index to the hash index so we can still find them when the height index entries are
     // overwritten.
-    if (!CopyHeightIndexToHashIndex(*db_it, batch, m_name, new_height, current_height)) {
+    if (!CopyHeightIndexToHashIndex(*db_it, batch, m_name, block.height - 1, block.height)) {
         return false;
     }
 
