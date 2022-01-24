@@ -85,7 +85,7 @@ private:
     /// getting corrupted.
     bool Commit(const CBlockLocator& locator);
 
-    /// Loop over disconnected blocks and call CustomRewind.
+    /// Loop over disconnected blocks and call CustomRemove.
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
 
     Mutex m_mutex;
@@ -118,7 +118,7 @@ protected:
 
     /// Rewind index to an earlier chain tip during a chain reorg. The tip must
     /// be an ancestor of the current best block.
-    [[nodiscard]] virtual bool CustomRewind(const interfaces::BlockKey& current_tip, const interfaces::BlockKey& new_tip) { return true; }
+    [[nodiscard]] virtual bool CustomRemove(const interfaces::BlockInfo& block) { return true; }
 
     virtual DB& GetDB() const = 0;
 
