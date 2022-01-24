@@ -266,6 +266,8 @@ public:
 
     struct NotifyOptions
     {
+        //! Include undo data with block connected notifications.
+        bool connect_undo_data = false;
         //! Include undo data with block disconnected notifications.
         bool disconnect_undo_data = false;
     };
