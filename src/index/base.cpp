@@ -66,6 +66,15 @@ public:
 void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
 {
     const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
+    if (!block.data) {
+        // Null block.data means block is the ending block at the end of a sync,
+        // so just update the best block and m_synced.
+        m_index.SetBestBlockIndex(pindex);
+        if (block.chain_tip) {
+            m_index.m_synced = true;
+        }
+        return;
+    }
 
     if (m_index.IgnoreBlockConnected(block)) return;
 
@@ -262,10 +271,10 @@ void BaseIndex::ThreadSync()
                 LOCK(cs_main);
                 const CBlockIndex* pindex_next = NextSyncBlock(pindex, m_chainstate->m_chain);
                 if (!pindex_next) {
-                    SetBestBlockIndex(pindex);
-                    m_synced = true;
-                    // No need to handle errors in Commit. See rationale above.
-                    Commit(GetLocator(*m_chain, pindex->GetBlockHash()));
+                    assert(pindex);
+                    notifications->blockConnected(kernel::MakeBlockInfo(pindex));
+                    assert(m_synced);
+                    notifications->chainStateFlushed(GetLocator(*m_chain, pindex->GetBlockHash()));
                     break;
                 }
                 if (pindex_next->pprev != pindex && !Rewind(pindex, pindex_next->pprev)) {
