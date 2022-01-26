@@ -55,6 +55,8 @@ public:
 
     BaseIndex& m_index;
     interfaces::Chain::NotifyOptions m_options = m_index.CustomOptions();
+    int64_t m_last_log_time = 0;
+    int64_t m_last_locator_write_time = 0;
 };
 
 void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
@@ -92,6 +94,12 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         }
         block_info.undo_data = &block_undo;
     }
+    int64_t current_time = GetTime();
+    if (m_last_log_time + SYNC_LOG_INTERVAL < current_time) {
+        LogPrintf("Syncing %s with block chain from height %d\n",
+                  m_index.GetName(), pindex->nHeight);
+        m_last_log_time = current_time;
+    }
     if (!m_index.CustomAppend(block_info)) {
         FatalError("%s: Failed to write block %s to index",
                    __func__, pindex->GetBlockHash().ToString());
@@ -99,6 +107,13 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
     }
     if (m_index.m_synced) {
         m_index.m_best_block_index = pindex;
+    } else if (m_last_locator_write_time + SYNC_LOCATOR_WRITE_INTERVAL < current_time || m_index.m_interrupt) {
+        m_index.m_best_block_index = pindex;
+        m_last_locator_write_time = current_time;
+        // No need to handle errors in Commit. If it fails, the error will be already be
+        // logged. The best way to recover is to continue, as index cannot be corrupted by
+        // a missed commit to disk for an advanced index state.
+        m_index.Commit(GetLocator(*m_index.m_chain, pindex->GetBlockHash()));
     }
 }
 
@@ -168,15 +183,8 @@ void BaseIndex::ThreadSync()
         auto& consensus_params = Params().GetConsensus();
         auto notifications = WITH_LOCK(m_mutex, return m_notifications);
 
-        int64_t last_log_time = 0;
-        int64_t last_locator_write_time = 0;
         while (true) {
             if (m_interrupt) {
-                m_best_block_index = pindex;
-                // No need to handle errors in Commit. If it fails, the error will be already be
-                // logged. The best way to recover is to continue, as index cannot be corrupted by
-                // a missed commit to disk for an advanced index state.
-                Commit(GetLocator(*m_chain, pindex->GetBlockHash()));
                 return;
             }
 
@@ -196,20 +204,6 @@ void BaseIndex::ThreadSync()
                     return;
                 }
                 pindex = pindex_next;
-            }
-
-            int64_t current_time = GetTime();
-            if (last_log_time + SYNC_LOG_INTERVAL < current_time) {
-                LogPrintf("Syncing %s with block chain from height %d\n",
-                          GetName(), pindex->nHeight);
-                last_log_time = current_time;
-            }
-
-            if (last_locator_write_time + SYNC_LOCATOR_WRITE_INTERVAL < current_time) {
-                m_best_block_index = pindex;
-                last_locator_write_time = current_time;
-                // No need to handle errors in Commit. See rationale above.
-                Commit(GetLocator(*m_chain, pindex->GetBlockHash()));
             }
 
             CBlock block;
