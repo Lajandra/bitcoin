@@ -296,6 +296,8 @@ public:
         bool disconnect_data = false;
         //! Include undo data with block disconnected notifications.
         bool disconnect_undo_data = false;
+        //! Name to use for attachChain sync thread.
+        std::string thread_name;
     };
 
     //! Start sync function callback passed to attachChain, allowing chain
