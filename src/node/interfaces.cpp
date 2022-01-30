@@ -797,6 +797,10 @@ public:
     {
         return std::make_unique<NotificationsHandlerImpl>(std::move(notifications));
     }
+    void waitForNotifications() override
+    {
+        SyncWithValidationInterfaceQueue();
+    }
     void waitForNotificationsIfTipChanged(const uint256& old_tip) override
     {
         if (!old_tip.IsNull()) {
