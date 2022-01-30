@@ -41,7 +41,9 @@
 #include <uint256.h>
 #include <univalue.h>
 #include <util/check.h>
+#include <util/syscall_sandbox.h>
 #include <util/system.h>
+#include <util/thread.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
@@ -363,6 +365,22 @@ bool FillBlock(const CBlockIndex* index, const FoundBlock& block, UniqueLock<Rec
     return true;
 }
 
+static const CBlockIndex* NextSyncBlock(const CBlockIndex* pindex_prev, const CChain& chain) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    AssertLockHeld(cs_main);
+
+    if (!pindex_prev) {
+        return chain.Genesis();
+    }
+
+    const CBlockIndex* pindex = chain.Next(pindex_prev);
+    if (pindex) {
+        return pindex;
+    }
+
+    return chain.Next(chain.FindFork(pindex_prev));
+}
+
 class NotificationsProxy : public CValidationInterface
 {
 public:
@@ -402,14 +420,21 @@ public:
         RegisterSharedValidationInterface(m_proxy);
     }
     ~NotificationsHandlerImpl() override { disconnect(); }
+    void interrupt() override { m_interrupt(); }
     void disconnect() override
     {
+        m_interrupt();
         if (m_proxy) {
             UnregisterSharedValidationInterface(m_proxy);
             m_proxy.reset();
         }
+        if (m_thread_sync.joinable()) {
+            m_thread_sync.join();
+        }
     }
     std::shared_ptr<NotificationsProxy> m_proxy;
+    std::thread m_thread_sync;
+    CThreadInterrupt m_interrupt;
 };
 
 class RpcHandlerImpl : public Handler
@@ -481,6 +506,12 @@ public:
         const CChain& active = Assert(m_node.chainman)->ActiveChain();
         CBlockIndex* block = active[height];
         return block && ((block->nStatus & BLOCK_HAVE_DATA) != 0) && block->nTx > 0;
+    }
+    bool getTip(const FoundBlock& block) override
+    {
+        WAIT_LOCK(cs_main, lock);
+        const CChain& active = Assert(m_node.chainman)->ActiveChain();
+        return FillBlock(active.Tip(), block, lock, active);
     }
     CBlockLocator getTipLocator() override
     {
@@ -709,6 +740,52 @@ public:
         notifications->blockConnected(block_info);
         if (!block_info.chain_tip && !checkBlocks(locator_block)) return nullptr;
         auto handler = std::make_unique<NotificationsHandlerImpl>(notifications);
+        if (!block_info.chain_tip) handler->m_thread_sync = std::thread(&util::TraceThread, options.thread_name, [&active, locator_block, notifications, handler = handler.get()] {
+            SetSyscallSandboxPolicy(SyscallSandboxPolicy::TX_INDEX);
+            const CBlockIndex* pindex = locator_block;
+            auto& consensus_params = Params().GetConsensus();
+            while (!handler->m_interrupt) {
+                {
+                    LOCK(cs_main);
+                    const CBlockIndex* pindex_next = NextSyncBlock(pindex, active.m_chain);
+                    if (!pindex_next) {
+                        assert(pindex);
+                        notifications->blockConnected(node::MakeBlockInfo(pindex));
+                        notifications->chainStateFlushed(active.m_chain.GetLocator(pindex));
+                        break;
+                    }
+                    if (pindex_next->pprev != pindex) {
+                        const CBlockIndex* current_tip = pindex;
+                        const CBlockIndex* new_tip = pindex_next->pprev;
+                        for (const CBlockIndex* iter_tip = current_tip; iter_tip != new_tip; iter_tip = iter_tip->pprev) {
+                            CBlock block;
+                            interfaces::BlockInfo block_info = node::MakeBlockInfo(iter_tip);
+                            block_info.chain_tip = false;
+                            if (!ReadBlockFromDisk(block, iter_tip, consensus_params)) {
+                                block_info.error = strprintf("%s: Failed to read block %s from disk",
+                                        __func__, iter_tip->GetBlockHash().ToString());
+                            } else {
+                                block_info.data = &block;
+                            }
+                            notifications->blockDisconnected(block_info);
+                            if (handler->m_interrupt) break;
+                        }
+                    }
+                    pindex = pindex_next;
+                }
+
+                CBlock block;
+                interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex);
+                block_info.chain_tip = false;
+                if (!ReadBlockFromDisk(block, pindex, consensus_params)) {
+                    block_info.error = strprintf("%s: Failed to read block %s from disk",
+                            __func__, pindex->GetBlockHash().ToString());
+                } else {
+                    block_info.data = &block;
+                }
+                notifications->blockConnected(block_info);
+            }
+        });
         return handler;
     }
     std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) override
