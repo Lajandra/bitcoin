@@ -83,6 +83,7 @@ struct BlockInfo {
     const CBlockUndo* undo_data = nullptr;
     //! Block is from the tip of the chain (always true except during initial sync)
     bool chain_tip = true;
+    std::string error;
 
     BlockInfo(const uint256& hash) : hash(hash) {}
 };
