@@ -135,6 +135,9 @@ public:
     //! pruned), and contains transactions.
     virtual bool haveBlockOnDisk(int height) = 0;
 
+    //! Get tip information.
+    virtual bool getTip(const FoundBlock& block={}) = 0;
+
     //! Get locator for the current chain tip.
     virtual CBlockLocator getTipLocator() = 0;
 
@@ -274,6 +277,8 @@ public:
         bool connect_undo_data = false;
         //! Include undo data with block disconnected notifications.
         bool disconnect_undo_data = false;
+        //! Name to use for sync thread.
+        const char* thread_name = nullptr;
     };
 
     //! Register handler for notifications if all blocks needed to sync from
