@@ -38,6 +38,12 @@ namespace interfaces {
 class Handler;
 class Wallet;
 
+//! Hash/height pair to help track and identify blocks.
+struct BlockKey {
+    uint256 hash;
+    int height = -1;
+};
+
 //! Helper for findBlock to selectively return pieces of block data. If block is
 //! found, data will be returned by setting specified output variables. If block
 //! is not found, output variables will keep their previous values.
@@ -281,6 +287,9 @@ public:
 
     //! Register handler for notifications.
     virtual std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) = 0;
+
+    //! Wait for pending notifications.
+    virtual void waitForNotifications() = 0;
 
     //! Wait for pending notifications to be processed unless block hash points to the current
     //! chain tip.
