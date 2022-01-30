@@ -62,6 +62,7 @@ public:
 
     BaseIndex& m_index;
     interfaces::Chain::NotifyOptions m_options = m_index.CustomOptions();
+    std::optional<bool> m_init_result;
     std::chrono::steady_clock::time_point m_last_log_time{0s};
     std::chrono::steady_clock::time_point m_last_locator_write_time{0s};
     //! As blocks are disconnected, index is updated but not committed to until
@@ -74,6 +75,10 @@ public:
 
 void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
 {
+    if (!block.error.empty()) {
+        FatalError("%s", block.error);
+        return m_index.Interrupt();
+    }
     const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
     if (!block.data) {
         // Null block.data means block is the starting block at the beginning
@@ -83,6 +88,15 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         m_index.SetBestBlockIndex(pindex);
         if (block.chain_tip) {
             m_index.m_synced = true;
+            if (pindex) {
+                LogPrintf("%s is enabled at height %d\n", m_index.GetName(), pindex->nHeight);
+            } else {
+                LogPrintf("%s is enabled\n", m_index.GetName());
+            }
+        }
+        if (!m_init_result) {
+            m_init_result = m_index.CustomInit(block.height >= 0 ? std::make_optional(interfaces::BlockKey{block.hash, block.height}) : std::nullopt);
+            if (!*m_init_result) return m_index.Interrupt();
         }
         return;
     }
@@ -153,6 +167,10 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
 
 void BaseIndexNotifications::blockDisconnected(const interfaces::BlockInfo& block)
 {
+    if (!block.error.empty()) {
+        FatalError("%s", block.error);
+        return m_index.Interrupt();
+    }
     // During initial sync, ignore validation interface notifications, only
     // process notifications from sync thread.
     if (!m_index.m_synced && block.chain_tip) return;
@@ -417,13 +435,13 @@ void BaseIndex::ThreadSync()
                         interfaces::BlockInfo block_info = kernel::MakeBlockInfo(iter_tip);
                         block_info.chain_tip = false;
                         if (!ReadBlockFromDisk(block, iter_tip, consensus_params)) {
-                            FatalError("%s: Failed to read block %s from disk",
+                            block_info.error = strprintf("%s: Failed to read block %s from disk",
                                        __func__, iter_tip->GetBlockHash().ToString());
-                            return;
                         } else {
                             block_info.data = &block;
                         }
                         notifications->blockDisconnected(block_info);
+                        if (m_interrupt) break;
                     }
 >>>>>>> 157558bafa8f (indexes, refactor: Move Rewind logic out of Rewind to blockDisconnected and ThreadSync)
                 }
@@ -442,10 +460,15 @@ void BaseIndex::ThreadSync()
             // Set chain_tip to false so blockConnected call does not set m_synced to true.
             block_info.chain_tip = false;
             if (!ReadBlockFromDisk(block, pindex, consensus_params)) {
+<<<<<<< HEAD
                 FatalError("%s: Failed to read block %s from disk",
 >>>>>>> 46bd09f9a92c (indexes, refactor: Remove remaining CBlockIndex* uses in index CustomAppend methods)
+||||||| parent of 77d3de1cf2a5 (indexes, refactor: Move CustomInit and error handling code out of ThreadSync to notification handlers)
+                FatalError("%s: Failed to read block %s from disk",
+=======
+                block_info.error = strprintf("%s: Failed to read block %s from disk",
+>>>>>>> 77d3de1cf2a5 (indexes, refactor: Move CustomInit and error handling code out of ThreadSync to notification handlers)
                            __func__, pindex->GetBlockHash().ToString());
-                return;
             } else {
                 block_info.data = &block;
             }
@@ -670,11 +693,8 @@ bool BaseIndex::StartBackgroundSync()
         LOCK(m_mutex);
         m_notifications = std::move(notifications);
         m_handler = std::move(handler);
-    }
-
-    const CBlockIndex* index = m_best_block_index.load();
-    if (!CustomInit(index ? std::make_optional(interfaces::BlockKey{index->GetBlockHash(), index->nHeight}) : std::nullopt)) {
-        return false;
+        assert(m_notifications->m_init_result.has_value());
+        if (!m_notifications->m_init_result.value()) return false;
     }
 >>>>>>> 42ba163fcdaa (indexes, refactor: Remove index Init method)
 

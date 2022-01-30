@@ -95,7 +95,12 @@ struct BlockInfo {
 =======
     //! Block is from the tip of the chain (always true except when first calling attachChain and reading old blocks).
     bool chain_tip = true;
+<<<<<<< HEAD
 >>>>>>> 42ba163fcdaa (indexes, refactor: Remove index Init method)
+||||||| parent of 77d3de1cf2a5 (indexes, refactor: Move CustomInit and error handling code out of ThreadSync to notification handlers)
+=======
+    std::string error;
+>>>>>>> 77d3de1cf2a5 (indexes, refactor: Move CustomInit and error handling code out of ThreadSync to notification handlers)
 
     BlockInfo(const uint256& hash LIFETIMEBOUND) : hash(hash) {}
 };
