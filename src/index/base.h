@@ -71,6 +71,7 @@ private:
     /// The last block in the chain that the index is in sync with.
     std::atomic<const CBlockIndex*> m_best_block_index{nullptr};
 
+<<<<<<< HEAD
     std::thread m_thread_sync;
     CThreadInterrupt m_interrupt;
 
@@ -81,6 +82,25 @@ private:
     /// over and the sync thread exits.
     void ThreadSync() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
+||||||| parent of ea8379cb6c97 (indexes, refactor: Move sync thread from index to node)
+    std::thread m_thread_sync;
+    CThreadInterrupt m_interrupt;
+
+    /// Read best block locator and check that data needed to sync has not been pruned.
+    bool Init();
+
+    /// Sync the index with the block index starting from the current best block.
+    /// Intended to be run in its own thread, m_thread_sync, and can be
+    /// interrupted with m_interrupt. Once the index gets in sync, the m_synced
+    /// flag is set and the BlockConnected ValidationInterface callback takes
+    /// over and the sync thread exits.
+    void ThreadSync() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+
+=======
+    /// Read best block locator and check that data needed to sync has not been pruned.
+    bool Init();
+
+>>>>>>> ea8379cb6c97 (indexes, refactor: Move sync thread from index to node)
     /// Write the current index state (eg. chain block locator and subclass-specific items) to disk.
     ///
     /// Recommendations for error handling:
