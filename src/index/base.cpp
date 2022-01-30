@@ -72,6 +72,10 @@ public:
 
 void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
 {
+    if (!block.error.empty()) {
+        m_index.FatalErrorf("%s", block.error);
+        return m_index.Interrupt();
+    }
     const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
     if (!block.data) {
         // Null block.data means block is the ending block at the end of a sync,
@@ -79,6 +83,11 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         m_index.SetBestBlockIndex(pindex);
         if (block.chain_tip) {
             m_index.m_synced = true;
+            if (pindex) {
+                LogPrintf("%s is enabled at height %d\n", m_index.GetName(), pindex->nHeight);
+            } else {
+                LogPrintf("%s is enabled\n", m_index.GetName());
+            }
         }
         return;
     }
@@ -149,6 +158,10 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
 
 void BaseIndexNotifications::blockDisconnected(const interfaces::BlockInfo& block)
 {
+    if (!block.error.empty()) {
+        m_index.FatalErrorf("%s", block.error);
+        return m_index.Interrupt();
+    }
     // During initial sync, ignore validation interface notifications, only
     // process notifications from sync thread.
     if (!m_index.m_synced && block.chain_tip) return;
@@ -330,13 +343,13 @@ void BaseIndex::ThreadSync()
                         interfaces::BlockInfo block_info = kernel::MakeBlockInfo(iter_tip);
                         block_info.chain_tip = false;
                         if (!m_chainstate->m_blockman.ReadBlockFromDisk(block, *iter_tip)) {
-                            FatalErrorf("%s: Failed to read block %s from disk",
+                            block_info.error = strprintf("%s: Failed to read block %s from disk",
                                        __func__, iter_tip->GetBlockHash().ToString());
-                            return;
                         } else {
                             block_info.data = &block;
                         }
                         notifications->blockDisconnected(block_info);
+                        if (m_interrupt) break;
                     }
                 }
                 pindex = pindex_next;
@@ -347,9 +360,8 @@ void BaseIndex::ThreadSync()
             // Set chain_tip to false so blockConnected call does not set m_synced to true.
             block_info.chain_tip = false;
             if (!m_chainstate->m_blockman.ReadBlockFromDisk(block, *pindex)) {
-                FatalErrorf("%s: Failed to read block %s from disk",
+                block_info.error = strprintf("%s: Failed to read block %s from disk",
                            __func__, pindex->GetBlockHash().ToString());
-                return;
             } else {
                 block_info.data = &block;
             }
