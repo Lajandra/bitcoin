@@ -24,11 +24,11 @@ struct IndexSummary {
 };
 
 /**
- * Base class for indices of blockchain data. This implements
- * CValidationInterface and ensures blocks are indexed sequentially according
- * to their position in the active chain.
+ * Base class for indices of blockchain data. This handles block connected and
+ * disconnected notifications and ensures blocks are indexed sequentially
+ * according to their position in the active chain.
  */
-class BaseIndex : public CValidationInterface
+class BaseIndex
 {
 protected:
     /**
@@ -79,13 +79,18 @@ private:
     /// to a chain reorganization), the index must halt until Commit succeeds or else it could end up
     /// getting corrupted.
     bool Commit();
+
+    Mutex m_mutex;
+    std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
+    friend class BaseIndexNotifications;
+
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     CChainState* m_chainstate{nullptr};
 
-    void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
+    void BlockConnected(const CBlock* block, const CBlockIndex* pindex);
 
-    void ChainStateFlushed(const CBlockLocator& locator) override;
+    void ChainStateFlushed(const CBlockLocator& locator);
 
     const CBlockIndex* CurrentIndex() { return m_best_block_index.load(); };
 

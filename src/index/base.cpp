@@ -5,6 +5,7 @@
 #include <chainparams.h>
 #include <index/base.h>
 #include <interfaces/chain.h>
+#include <interfaces/handler.h>
 #include <node/blockstorage.h>
 #include <node/context.h>
 #include <node/ui_interface.h>
@@ -31,6 +32,28 @@ static void FatalError(const char* fmt, const Args&... args)
     LogPrintf("*** %s\n", strMessage);
     AbortError(_("A fatal internal error occurred, see debug.log for details"));
     StartShutdown();
+}
+
+class BaseIndexNotifications : public interfaces::Chain::Notifications
+{
+public:
+    BaseIndexNotifications(BaseIndex& index) : m_index(index) {}
+    void blockConnected(const interfaces::BlockInfo& block) override;
+    void chainStateFlushed(const CBlockLocator& locator) override;
+    BaseIndex& m_index;
+};
+
+void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
+{
+   if (block.data) {
+       const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
+       m_index.BlockConnected(block.data, pindex);
+   }
+}
+
+void BaseIndexNotifications::chainStateFlushed(const CBlockLocator& locator)
+{
+    m_index.ChainStateFlushed(locator);
 }
 
 BaseIndex::DB::DB(const fs::path& path, size_t n_cache_size, bool f_memory, bool f_wipe, bool f_obfuscate) :
@@ -197,6 +220,14 @@ void BaseIndex::ThreadSync()
         }
     }
 
+    if (!m_interrupt) {
+        auto locator = WITH_LOCK(cs_main, return m_chainstate->m_chain.GetLocator(pindex));
+        auto options = interfaces::Chain::NotifyOptions{};
+        options.thread_name = GetName();
+        auto handler = m_chain->attachChain(std::make_shared<BaseIndexNotifications>(*this), locator, options);
+        WITH_LOCK(m_mutex, m_handler = std::move(handler));
+    }
+
     if (pindex) {
         LogPrintf("%s is enabled at height %d\n", GetName(), pindex->nHeight);
     } else {
@@ -245,7 +276,7 @@ bool BaseIndex::Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_ti
     return true;
 }
 
-void BaseIndex::BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex)
+void BaseIndex::BlockConnected(const CBlock* block, const CBlockIndex* pindex)
 {
     if (!m_synced) {
         return;
@@ -259,18 +290,9 @@ void BaseIndex::BlockConnected(const std::shared_ptr<const CBlock>& block, const
             return;
         }
     } else {
-        // Ensure block connects to an ancestor of the current best block. This should be the case
-        // most of the time, but may not be immediately after the sync thread catches up and sets
-        // m_synced. Consider the case where there is a reorg and the blocks on the stale branch are
-        // in the ValidationInterface queue backlog even after the sync thread has caught up to the
-        // new chain tip. In this unlikely event, log a warning and let the queue clear.
-        if (best_block_index->GetAncestor(pindex->nHeight - 1) != pindex->pprev) {
-            LogPrintf("%s: WARNING: Block %s does not connect to an ancestor of " /* Continued */
-                      "known best chain (tip=%s); not updating index\n",
-                      __func__, pindex->GetBlockHash().ToString(),
-                      best_block_index->GetBlockHash().ToString());
-            return;
-        }
+        // Ensure block connects to an ancestor of the current best block.
+        assert(best_block_index->GetAncestor(pindex->nHeight - 1) == pindex->pprev);
+
         if (best_block_index != pindex->pprev && !Rewind(best_block_index, pindex->pprev)) {
             FatalError("%s: Failed to rewind index %s to a previous chain tip",
                        __func__, GetName());
@@ -306,19 +328,9 @@ void BaseIndex::ChainStateFlushed(const CBlockLocator& locator)
         return;
     }
 
-    // This checks that ChainStateFlushed callbacks are received after BlockConnected. The check may fail
-    // immediately after the sync thread catches up and sets m_synced. Consider the case where
-    // there is a reorg and the blocks on the stale branch are in the ValidationInterface queue
-    // backlog even after the sync thread has caught up to the new chain tip. In this unlikely
-    // event, log a warning and let the queue clear.
+    // This checks that ChainStateFlushed callbacks are received after BlockConnected.
     const CBlockIndex* best_block_index = m_best_block_index.load();
-    if (best_block_index->GetAncestor(locator_tip_index->nHeight) != locator_tip_index) {
-        LogPrintf("%s: WARNING: Locator contains block (hash=%s) not on known best " /* Continued */
-                  "chain (tip=%s); not writing index locator\n",
-                  __func__, locator_tip_hash.ToString(),
-                  best_block_index->GetBlockHash().ToString());
-        return;
-    }
+    assert(best_block_index->GetAncestor(locator_tip_index->nHeight) == locator_tip_index);
 
     // No need to handle errors in Commit. If it fails, the error will be already be logged. The
     // best way to recover is to continue, as index cannot be corrupted by a missed commit to disk
@@ -353,6 +365,8 @@ bool BaseIndex::BlockUntilSyncedToCurrentChain() const
 void BaseIndex::Interrupt()
 {
     m_interrupt();
+    LOCK(m_mutex);
+    if (m_handler) m_handler->interrupt();
 }
 
 bool BaseIndex::Start()
@@ -360,9 +374,6 @@ bool BaseIndex::Start()
     // m_chainstate member gives indexing code access to node internals. It
     // will be removed in upcoming commit
     m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
-    // Need to register this ValidationInterface before running Init(), so that
-    // callbacks are not missed if Init sets m_synced to true.
-    RegisterValidationInterface(this);
     if (!Init()) {
         return false;
     }
@@ -373,11 +384,18 @@ bool BaseIndex::Start()
 
 void BaseIndex::Stop()
 {
-    UnregisterValidationInterface(this);
+    Interrupt();
 
     if (m_thread_sync.joinable()) {
         m_thread_sync.join();
     }
+
+    // Call handler destructor after releasing m_mutex. Locking the mutex is
+    // required to access m_handler, but the lock should not be held while
+    // destroying the handler, because the handler destructor waits for the last
+    // notification to be processed, so holding the lock would deadlock if that
+    // last notification also needs the lock.
+    auto handler = WITH_LOCK(m_mutex, return std::move(m_handler));
 }
 
 IndexSummary BaseIndex::GetSummary() const

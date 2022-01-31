@@ -39,9 +39,12 @@
 #include <timedata.h>
 #include <txmempool.h>
 #include <uint256.h>
+#include <undo.h>
 #include <univalue.h>
 #include <util/check.h>
+#include <util/syscall_sandbox.h>
 #include <util/system.h>
+#include <util/thread.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
@@ -52,6 +55,7 @@
 #endif
 
 #include <any>
+#include <future>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -366,8 +370,8 @@ bool FillBlock(const CBlockIndex* index, const FoundBlock& block, UniqueLock<Rec
 class NotificationsProxy : public CValidationInterface
 {
 public:
-    explicit NotificationsProxy(std::shared_ptr<Chain::Notifications> notifications)
-        : m_notifications(std::move(notifications)) {}
+    explicit NotificationsProxy(std::shared_ptr<Chain::Notifications> notifications, const Chain::NotifyOptions& options)
+        : m_notifications(std::move(notifications)), m_options(options) {}
     virtual ~NotificationsProxy() = default;
     void TransactionAddedToMempool(const CTransactionRef& tx, uint64_t mempool_sequence) override
     {
@@ -379,37 +383,78 @@ public:
     }
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
-        m_notifications->blockConnected(node::MakeBlockInfo(index, block.get()));
+        interfaces::BlockInfo block_info = MakeBlockInfo(index, block.get());
+        CBlockUndo undo_data;
+        ReadBlockData(index, /*data=*/nullptr, m_options.connect_undo_data ? &undo_data : nullptr, block_info);
+        m_notifications->blockConnected(block_info);
     }
     void BlockDisconnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
-        m_notifications->blockDisconnected(node::MakeBlockInfo(index, block.get()));
+        interfaces::BlockInfo block_info = MakeBlockInfo(index, block.get());
+        CBlockUndo undo_data;
+        ReadBlockData(index, /*data=*/nullptr, m_options.disconnect_undo_data ? &undo_data : nullptr, block_info);
+        m_notifications->blockDisconnected(block_info);
     }
     void UpdatedBlockTip(const CBlockIndex* index, const CBlockIndex* fork_index, bool is_ibd) override
     {
         m_notifications->updatedBlockTip();
     }
     void ChainStateFlushed(const CBlockLocator& locator) override { m_notifications->chainStateFlushed(locator); }
+    static void connect(std::shared_ptr<NotificationsProxy> self)
+    {
+        LOCK(self->m_mutex);
+        if (self->m_state == INIT) {
+            RegisterSharedValidationInterface(self);
+            self->m_state = CONNECTED;
+        }
+    }
+    static void disconnect(std::shared_ptr<NotificationsProxy> self)
+    {
+        LOCK(self->m_mutex);
+        if (self->m_state == CONNECTED) {
+            UnregisterSharedValidationInterface(self);
+        }
+        self->m_state = DISCONNECTED;
+    }
     std::shared_ptr<Chain::Notifications> m_notifications;
+    Chain::NotifyOptions m_options;
+    Mutex m_mutex;
+    //! State reflecting whether proxy is registered to receive notifcations
+    //! from validationinterface, and whether the handler is connected to
+    //! receive notifications from the proxy. The implementation needs to avoid
+    //! registering the proxy if the handler is disconnected first, and avoid
+    //! unregistering the proxy if it wasn't registered first. State needs to be
+    //! guarded by mutex because connect() is called from a
+    //! CallFunctionInValidationInterfaceQueue callback in validationinterface
+    //! thread, and disconnect() is called from the application thread which
+    //! owns the handler, and the two calls could happen at any time in any
+    //! order.
+    enum State { INIT, CONNECTED, DISCONNECTED } m_state GUARDED_BY(m_mutex) = INIT;
 };
 
 class NotificationsHandlerImpl : public Handler
 {
 public:
-    explicit NotificationsHandlerImpl(std::shared_ptr<Chain::Notifications> notifications)
-        : m_proxy(std::make_shared<NotificationsProxy>(std::move(notifications)))
+    explicit NotificationsHandlerImpl(std::shared_ptr<Chain::Notifications> notifications, const Chain::NotifyOptions& options)
+        : m_proxy(std::make_shared<NotificationsProxy>(std::move(notifications), options))
     {
-        RegisterSharedValidationInterface(m_proxy);
     }
     ~NotificationsHandlerImpl() override { disconnect(); }
+    void interrupt() override { m_interrupt(); }
     void disconnect() override
     {
+        m_interrupt();
         if (m_proxy) {
-            UnregisterSharedValidationInterface(m_proxy);
+            NotificationsProxy::disconnect(m_proxy);
             m_proxy.reset();
+        }
+        if (m_thread_sync.joinable()) {
+            m_thread_sync.join();
         }
     }
     std::shared_ptr<NotificationsProxy> m_proxy;
+    std::thread m_thread_sync; //!< Sync thread that may be created by attachChain.
+    CThreadInterrupt m_interrupt;
 };
 
 class RpcHandlerImpl : public Handler
@@ -660,9 +705,59 @@ public:
     {
         ::uiInterface.ShowProgress(title, progress, resume_possible);
     }
+    std::unique_ptr<Handler> attachChain(std::shared_ptr<Notifications> notifications, const CBlockLocator& locator, const NotifyOptions& options) override
+    {
+        std::unique_ptr<NotificationsHandlerImpl> handler;
+        std::optional<interfaces::BlockInfo> block_info;
+        // std::promise to wait for the first blockConnected notification, so
+        // caller is notified about the starting block before this returns.
+        // It might be good in the future to return without waiting for this,
+        // and allow more initialization code to run in parallel.
+        std::promise<void> promise;
+        {
+        // Lock cs_main while finding forks and determining which blocks to
+        // rescan. Release cs_main while processing blocks and while calling
+        // RegisterSharedValidationInterface in the notifications thread.
+        //
+        // To prevent older, stale notifications currently in the validation
+        // queue from being received, it is important to not register for
+        // notifications immediately, but to delay registration with
+        // CallFunctionInValidationInterfaceQueue, registering the notification
+        // proxy inside the queue, so older notifications already in the queue
+        // get processed before the proxy is registered.
+        //
+        // To prevent new notifications that may be happening in the background
+        // from being lost, it is important to keep cs_main locked while calling
+        // CallFunctionInValidationInterfaceQueue, so the new notifications will
+        // be added to the queue after the queue entry which connects the proxy.
+        AssertLockNotHeld(::cs_main);
+        LOCK(cs_main);
+        const CChainState& active = Assert(m_node.chainman)->ActiveChainstate();
+        const CBlockIndex* locator_block = locator.IsNull() ? nullptr : active.FindForkInGlobalIndex(locator);
+        block_info.emplace(MakeBlockInfo(locator_block));
+        block_info->chain_tip = locator_block == active.m_chain.Tip();
+        handler = std::make_unique<NotificationsHandlerImpl>(notifications, options);
+        assert(!handler->m_thread_sync.joinable());
+        handler->m_thread_sync = std::thread(&util::TraceThread, "FUCKOTHREAD", // options.thread_name,
+            [&block_info, &promise, &active, locator_block, notifications, &interrupt = handler->m_interrupt, proxy = handler->m_proxy] {
+            SetSyscallSandboxPolicy(SyscallSandboxPolicy::TX_INDEX);
+            notifications->blockConnected(*block_info);
+            promise.set_value();
+            SyncChain(active.m_chain, locator_block, notifications, interrupt,
+                      /*on_sync=*/[proxy] { CallFunctionInValidationInterfaceQueue([proxy] { NotificationsProxy::connect(proxy); }); });
+        });
+        }
+        // Wait for blockConnected() call in sync thread so attachChain()
+        // caller knows the last block synced and sync status before this
+        // returns.
+        promise.get_future().wait();
+        return handler;
+    }
     std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) override
     {
-        return std::make_unique<NotificationsHandlerImpl>(std::move(notifications));
+        auto handler = std::make_unique<NotificationsHandlerImpl>(std::move(notifications), Chain::NotifyOptions{});
+        NotificationsProxy::connect(handler->m_proxy);
+        return handler;
     }
     void waitForNotificationsIfTipChanged(const uint256& old_tip) override
     {
