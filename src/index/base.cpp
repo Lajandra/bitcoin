@@ -78,7 +78,7 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         m_index.FatalErrorf("%s", block.error);
         return m_index.Interrupt();
     }
-    const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
+    const CBlockIndex* pindex = &m_index.BlockIndex(block.hash);
     if (!block.data) {
         // Null block.data means block is the ending block at the end of a sync,
         // so just update the best block and m_synced.
@@ -93,8 +93,6 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         }
         return;
     }
-
-    if (m_index.IgnoreBlockConnected(block)) return;
 
     bool rewind_ok = !m_rewind_start || !m_rewind_error;
     if (m_rewind_start && rewind_ok) {
@@ -147,8 +145,7 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         // best block index to be updated can rely on the block being fully
         // processed, and the index object being safe to delete.
         m_index.SetBestBlockIndex(pindex);
-    } else if (m_last_locator_write_time + SYNC_LOCATOR_WRITE_INTERVAL < current_time ||
-               WITH_LOCK(m_index.m_mutex, return !m_index.m_notifications.get())) {
+    } else if (m_last_locator_write_time + SYNC_LOCATOR_WRITE_INTERVAL < current_time) {
         auto locator = GetLocator(*m_index.m_chain, pindex->GetBlockHash());
         m_index.SetBestBlockIndex(pindex);
         m_last_locator_write_time = current_time;
@@ -165,11 +162,8 @@ void BaseIndexNotifications::blockDisconnected(const interfaces::BlockInfo& bloc
         m_index.FatalErrorf("%s", block.error);
         return m_index.Interrupt();
     }
-    // During initial sync, ignore validation interface notifications, only
-    // process notifications from sync thread.
-    if (!m_index.m_synced && block.chain_tip) return;
 
-    const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
+    const CBlockIndex* pindex = &m_index.BlockIndex(block.hash);
     if (!m_rewind_start) m_rewind_start = pindex;
     if (m_rewind_error) return;
 
@@ -186,8 +180,6 @@ void BaseIndexNotifications::blockDisconnected(const interfaces::BlockInfo& bloc
 
 void BaseIndexNotifications::chainStateFlushed(const CBlockLocator& locator)
 {
-    if (m_index.IgnoreChainStateFlushed(locator)) return;
-
     // No need to handle errors in Commit. If it fails, the error will be already be logged. The
     // best way to recover is to continue, as index cannot be corrupted by a missed commit to disk
     // for an advanced index state.
@@ -320,73 +312,6 @@ bool BaseIndex::Commit(const CBlockLocator& locator)
         return error("%s: Failed to commit latest %s state", __func__, GetName());
     }
     return true;
-}
-
-bool BaseIndex::IgnoreBlockConnected(const interfaces::BlockInfo& block)
-{
-    // During initial sync, ignore validation interface notifications, only
-    // process notifications from sync thread.
-    if (!m_synced) {
-        return block.chain_tip;
-    }
-
-    const CBlockIndex* pindex = &BlockIndex(block.hash);
-    const CBlockIndex* best_block_index = m_best_block_index.load();
-    if (!best_block_index) {
-        if (pindex->nHeight != 0) {
-            FatalErrorf("%s: First block connected is not the genesis block (height=%d)",
-                       __func__, pindex->nHeight);
-            return true;
-        }
-    } else {
-        // Ensure block connects to an ancestor of the current best block. This should be the case
-        // most of the time, but may not be immediately after the sync thread catches up and sets
-        // m_synced. Consider the case where there is a reorg and the blocks on the stale branch are
-        // in the ValidationInterface queue backlog even after the sync thread has caught up to the
-        // new chain tip. In this unlikely event, log a warning and let the queue clear.
-        if (best_block_index->GetAncestor(pindex->nHeight - 1) != pindex->pprev) {
-            LogPrintf("%s: WARNING: Block %s does not connect to an ancestor of " /* Continued */
-                      "known best chain (tip=%s); not updating index\n",
-                      __func__, pindex->GetBlockHash().ToString(),
-                      best_block_index->GetBlockHash().ToString());
-            return true;
-        }
-    }
-    return false;
-}
-
-bool BaseIndex::IgnoreChainStateFlushed(const CBlockLocator& locator)
-{
-    assert(!locator.IsNull());
-    const uint256& locator_tip_hash = locator.vHave.front();
-    const CBlockIndex* locator_tip_index;
-    {
-        LOCK(cs_main);
-        locator_tip_index = m_chainstate->m_blockman.LookupBlockIndex(locator_tip_hash);
-    }
-
-    if (!locator_tip_index) {
-        FatalErrorf("%s: First block (hash=%s) in locator was not found",
-                   __func__, locator_tip_hash.ToString());
-        return true;
-    }
-
-    // This checks that ChainStateFlushed callbacks are received after BlockConnected. The check may fail
-    // immediately after the sync thread catches up and sets m_synced. Consider the case where
-    // there is a reorg and the blocks on the stale branch are in the ValidationInterface queue
-    // backlog even after the sync thread has caught up to the new chain tip. In this unlikely
-    // event, log a warning and let the queue clear.
-    const CBlockIndex* best_block_index = m_best_block_index.load();
-    if (best_block_index->GetAncestor(locator_tip_index->nHeight) != locator_tip_index) {
-        if (m_synced) {
-            LogPrintf("%s: WARNING: Locator contains block (hash=%s) not on known best " /* Continued */
-                      "chain (tip=%s); not writing index locator\n",
-                      __func__, locator_tip_hash.ToString(),
-                      best_block_index->GetBlockHash().ToString());
-        }
-        return true;
-    }
-    return false;
 }
 
 bool BaseIndex::BlockUntilSyncedToCurrentChain() const
