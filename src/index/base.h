@@ -123,12 +123,6 @@ protected:
     Chainstate* m_chainstate{nullptr};
     const std::string m_name;
 
-    /// Return whether to ignore stale, out-of-sync block connected event
-    bool IgnoreBlockConnected(const interfaces::BlockInfo& block) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
-
-    /// Return whether to ignore stale, out-of-sync chain flushed event
-    bool IgnoreChainStateFlushed(const CBlockLocator& locator) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
-
     /// Return custom notification options for index.
     [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
 
