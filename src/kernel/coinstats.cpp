@@ -101,6 +101,36 @@ static bool ComputeUTXOStats(CCoinsView* view, CCoinsStats& stats, T hash_obj, c
     std::unique_ptr<CCoinsViewCursor> pcursor(view->Cursor());
     assert(pcursor);
 
+<<<<<<< HEAD:src/kernel/coinstats.cpp
+||||||| parent of 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code):src/node/coinstats.cpp
+    if (!pindex) {
+        LOCK(cs_main);
+        pindex = blockman.LookupBlockIndex(view->GetBestBlock());
+    }
+    stats.nHeight = Assert(pindex)->nHeight;
+    stats.hashBlock = pindex->GetBlockHash();
+
+    // Use CoinStatsIndex if it is requested and available and a hash_type of Muhash or None was requested
+    if ((stats.m_hash_type == CoinStatsHashType::MUHASH || stats.m_hash_type == CoinStatsHashType::NONE) && g_coin_stats_index && stats.index_requested) {
+        stats.index_used = true;
+        return g_coin_stats_index->LookUpStats(pindex, stats);
+    }
+
+=======
+    if (!pindex) {
+        LOCK(cs_main);
+        pindex = blockman.LookupBlockIndex(view->GetBestBlock());
+    }
+    stats.nHeight = Assert(pindex)->nHeight;
+    stats.hashBlock = pindex->GetBlockHash();
+
+    // Use CoinStatsIndex if it is requested and available and a hash_type of Muhash or None was requested
+    if ((stats.m_hash_type == CoinStatsHashType::MUHASH || stats.m_hash_type == CoinStatsHashType::NONE) && g_coin_stats_index && stats.index_requested) {
+        stats.index_used = true;
+        return g_coin_stats_index->LookUpStats({pindex->GetBlockHash(), pindex->nHeight}, stats);
+    }
+
+>>>>>>> 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code):src/node/coinstats.cpp
     PrepareHash(hash_obj, stats);
 
     uint256 prevkey;

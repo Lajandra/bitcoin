@@ -41,7 +41,13 @@ BOOST_FIXTURE_TEST_CASE(coinstatsindex_initial_sync, TestChain100Setup)
     }
 
     // CoinStatsIndex should not be found before it is started.
+<<<<<<< HEAD
     BOOST_CHECK(!coin_stats_index.LookUpStats(block_index));
+||||||| parent of 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    BOOST_CHECK(!coin_stats_index.LookUpStats(block_index, coin_stats));
+=======
+    BOOST_CHECK(!coin_stats_index.LookUpStats({block_index->GetBlockHash(), block_index->nHeight}, coin_stats));
+>>>>>>> 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
 
     // BlockUntilSyncedToCurrentChain should return false before CoinStatsIndex
     // is started.
@@ -57,10 +63,22 @@ BOOST_FIXTURE_TEST_CASE(coinstatsindex_initial_sync, TestChain100Setup)
         LOCK(cs_main);
         genesis_block_index = m_node.chainman->ActiveChain().Genesis();
     }
+<<<<<<< HEAD
     BOOST_CHECK(coin_stats_index.LookUpStats(genesis_block_index));
+||||||| parent of 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    BOOST_CHECK(coin_stats_index.LookUpStats(genesis_block_index, coin_stats));
+=======
+    BOOST_CHECK(coin_stats_index.LookUpStats({genesis_block_index->GetBlockHash(), genesis_block_index->nHeight}, coin_stats));
+>>>>>>> 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
 
     // Check that CoinStatsIndex updates with new blocks.
+<<<<<<< HEAD
     BOOST_CHECK(coin_stats_index.LookUpStats(block_index));
+||||||| parent of 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    coin_stats_index.LookUpStats(block_index, coin_stats);
+=======
+    coin_stats_index.LookUpStats({block_index->GetBlockHash(), block_index->nHeight}, coin_stats);
+>>>>>>> 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
 
     const CScript script_pub_key{CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG};
     std::vector<CMutableTransaction> noTxns;
@@ -74,7 +92,13 @@ BOOST_FIXTURE_TEST_CASE(coinstatsindex_initial_sync, TestChain100Setup)
         LOCK(cs_main);
         new_block_index = m_node.chainman->ActiveChain().Tip();
     }
+<<<<<<< HEAD
     BOOST_CHECK(coin_stats_index.LookUpStats(new_block_index));
+||||||| parent of 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    coin_stats_index.LookUpStats(new_block_index, new_coin_stats);
+=======
+    coin_stats_index.LookUpStats({new_block_index->GetBlockHash(), new_block_index->nHeight}, new_coin_stats);
+>>>>>>> 926ccc9fb54 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
 
     BOOST_CHECK(block_index != new_block_index);
 
