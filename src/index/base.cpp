@@ -55,7 +55,6 @@ public:
     void chainStateFlushed(const CBlockLocator& locator) override;
 
     BaseIndex& m_index;
-    interfaces::Chain::NotifyOptions m_options = m_index.CustomOptions();
     std::optional<bool> m_init_result;
     int64_t m_last_log_time = 0;
     int64_t m_last_locator_write_time = 0;
@@ -114,16 +113,6 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         return m_index.Interrupt();
     }
 
-    interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex, block.data);
-    CBlockUndo block_undo;
-    if (m_options.connect_undo_data && pindex->nHeight > 0) {
-        if (!node::UndoReadFromDisk(block_undo, pindex)) {
-            FatalError("%s: Failed to read block %s undo data from disk",
-                       __func__, pindex->GetBlockHash().ToString());
-            return m_index.Interrupt();
-        }
-        block_info.undo_data = &block_undo;
-    }
     int64_t current_time = 0;
     if (!m_index.m_synced) {
         current_time = GetTime();
@@ -133,7 +122,7 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
             m_last_log_time = current_time;
         }
     }
-    if (!m_index.CustomAppend(block_info)) {
+    if (!m_index.CustomAppend(block)) {
         FatalError("%s: Failed to write block %s to index",
                    __func__, pindex->GetBlockHash().ToString());
         return m_index.Interrupt();
@@ -165,15 +154,7 @@ void BaseIndexNotifications::blockDisconnected(const interfaces::BlockInfo& bloc
     if (!m_rewind_start || m_rewind_end) m_rewind_end = pindex;
     if (!m_rewind_start) m_rewind_start = pindex;
 
-    CBlockUndo block_undo;
-    interfaces::BlockInfo block_info = node::MakeBlockInfo(pindex, block.data);
-    if (m_options.disconnect_undo_data && block.height > 0) {
-        if (!node::UndoReadFromDisk(block_undo, pindex)) {
-            m_rewind_end = nullptr;
-        }
-        block_info.undo_data = &block_undo;
-    }
-    if (m_rewind_end && !m_index.CustomRemove(block_info)) {
+    if (m_rewind_end && !m_index.CustomRemove(block)) {
         m_rewind_end = nullptr;
     }
 }
