@@ -295,13 +295,31 @@ static bool LookUpOne(const CDBWrapper& db, const interfaces::BlockKey& block, D
     return db.Read(DBHashKey(block.hash), result);
 }
 
+<<<<<<< HEAD
 std::optional<CCoinsStats> CoinStatsIndex::LookUpStats(const CBlockIndex& block_index) const
+||||||| parent of 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+std::optional<CCoinsStats> CoinStatsIndex::LookUpStats(const CBlockIndex* block_index) const
+=======
+std::optional<CCoinsStats> CoinStatsIndex::LookUpStats(const interfaces::BlockKey& block) const
+>>>>>>> 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
 {
+<<<<<<< HEAD
     CCoinsStats stats{block_index.nHeight, block_index.GetBlockHash()};
+||||||| parent of 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    CCoinsStats stats{Assert(block_index)->nHeight, block_index->GetBlockHash()};
+=======
+    CCoinsStats stats{block.height, block.hash};
+>>>>>>> 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
     stats.index_used = true;
 
     DBVal entry;
+<<<<<<< HEAD
     if (!LookUpOne(*m_db, {block_index.GetBlockHash(), block_index.nHeight}, entry)) {
+||||||| parent of 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    if (!LookUpOne(*m_db, {block_index->GetBlockHash(), block_index->nHeight}, entry)) {
+=======
+    if (!LookUpOne(*m_db, block, entry)) {
+>>>>>>> 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
         return std::nullopt;
     }
 

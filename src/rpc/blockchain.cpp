@@ -833,10 +833,24 @@ static std::optional<kernel::CCoinsStats> GetUTXOStats(CCoinsView* view, node::B
     // Use CoinStatsIndex if it is requested and available and a hash_type of Muhash or None was requested
     if ((hash_type == kernel::CoinStatsHashType::MUHASH || hash_type == kernel::CoinStatsHashType::NONE) && g_coin_stats_index && index_requested) {
         if (pindex) {
+<<<<<<< HEAD
             return g_coin_stats_index->LookUpStats(*pindex);
+||||||| parent of 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+            return g_coin_stats_index->LookUpStats(pindex);
+=======
+            return g_coin_stats_index->LookUpStats({pindex->GetBlockHash(), pindex->nHeight});
+>>>>>>> 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
         } else {
+<<<<<<< HEAD
             CBlockIndex& block_index = *CHECK_NONFATAL(WITH_LOCK(::cs_main, return blockman.LookupBlockIndex(view->GetBestBlock())));
             return g_coin_stats_index->LookUpStats(block_index);
+||||||| parent of 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+            CBlockIndex* block_index = WITH_LOCK(::cs_main, return blockman.LookupBlockIndex(view->GetBestBlock()));
+            return g_coin_stats_index->LookUpStats(block_index);
+=======
+            CBlockIndex* block_index = WITH_LOCK(::cs_main, return blockman.LookupBlockIndex(view->GetBestBlock()));
+            return g_coin_stats_index->LookUpStats({block_index->GetBlockHash(), block_index->nHeight});
+>>>>>>> 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
         }
     }
 
@@ -2238,8 +2252,8 @@ static RPCHelpMan getblockfilter()
 
     BlockFilter filter;
     uint256 filter_header;
-    if (!index->LookupFilter(block_index, filter) ||
-        !index->LookupFilterHeader(block_index, filter_header)) {
+    if (!index->LookupFilter({block_index->GetBlockHash(), block_index->nHeight}, filter) ||
+        !index->LookupFilterHeader({block_index->GetBlockHash(), block_index->nHeight}, filter_header)) {
         int err_code;
         std::string errmsg = "Filter not found.";
 

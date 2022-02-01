@@ -57,8 +57,16 @@ public:
     // Constructs the index, which becomes available to be queried.
     explicit CoinStatsIndex(std::unique_ptr<interfaces::Chain> chain, size_t n_cache_size, bool f_memory = false, bool f_wipe = false);
 
+<<<<<<< HEAD
     // Look up stats for a specific block using CBlockIndex
     std::optional<kernel::CCoinsStats> LookUpStats(const CBlockIndex& block_index) const;
+||||||| parent of 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    // Look up stats for a specific block using CBlockIndex
+    std::optional<kernel::CCoinsStats> LookUpStats(const CBlockIndex* block_index) const;
+=======
+    // Look up stats for a specific block using hash and height
+    std::optional<kernel::CCoinsStats> LookUpStats(const interfaces::BlockKey& block) const;
+>>>>>>> 8bb0a3de9f0 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
 };
 
 /// The global UTXO set hash object.
