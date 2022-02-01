@@ -54,6 +54,7 @@
 #endif
 
 #include <any>
+#include <future>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -726,6 +727,14 @@ public:
     }
     std::unique_ptr<Handler> attachChain(std::shared_ptr<Notifications> notifications, const CBlockLocator& locator, const NotifyOptions& options) override
     {
+        std::unique_ptr<NotificationsHandlerImpl> handler;
+        std::optional<interfaces::BlockInfo> block_info;
+        // std::promise to wait for the first blockConnected notification, so
+        // caller is notified about the starting block before this returns.
+        // It might be good in the future to return without waiting for this,
+        // and allow more initialization code to run in parallel.
+        std::promise<void> promise;
+        {
         // Lock cs_main while finding forks and determining which blocks to
         // rescan. Release cs_main while processing blocks and while calling
         // RegisterSharedValidationInterface in the notifications thread.
@@ -743,20 +752,19 @@ public:
         LOCK(cs_main);
         const CChainState& active = Assert(m_node.chainman)->ActiveChainstate();
         CBlockIndex* locator_block = locator.IsNull() ? nullptr : active.FindForkInGlobalIndex(locator);
-        interfaces::BlockInfo block_info = node::MakeBlockInfo(locator_block);
-        block_info.chain_tip = locator_block == active.m_chain.Tip();
-        notifications->blockConnected(block_info);
-        if (!block_info.chain_tip && !checkBlocks(locator_block)) return nullptr;
-        auto handler = std::make_unique<NotificationsHandlerImpl>(notifications, /*connect=*/false);
-        if (block_info.chain_tip) {
-            CallFunctionInValidationInterfaceQueue([proxy = handler->m_proxy] { proxy->connect(proxy); });
-        } else {
-            handler->m_thread_sync = std::thread(&util::TraceThread, options.thread_name, [&active, locator_block, notifications, handler = handler.get()] {
-                SetSyscallSandboxPolicy(SyscallSandboxPolicy::TX_INDEX);
-                SyncChain(active.m_chain, locator_block, notifications, handler->m_interrupt,
-                          /*on_sync=*/[proxy = handler->m_proxy] { CallFunctionInValidationInterfaceQueue([proxy] { proxy->connect(proxy); }); });
-            });
+        block_info.emplace(MakeBlockInfo(locator_block));
+        block_info->chain_tip = locator_block == active.m_chain.Tip();
+        if (!block_info->chain_tip && !checkBlocks(locator_block)) return nullptr;
+        handler = std::make_unique<NotificationsHandlerImpl>(notifications, /*connect=*/false);
+        handler->m_thread_sync = std::thread(&util::TraceThread, options.thread_name, [&block_info, &promise, &active, locator_block, notifications, handler = handler.get()] {
+            SetSyscallSandboxPolicy(SyscallSandboxPolicy::TX_INDEX);
+            notifications->blockConnected(*block_info);
+            promise.set_value();
+            SyncChain(active.m_chain, locator_block, notifications, handler->m_interrupt,
+                        /*on_sync=*/[proxy = handler->m_proxy] { CallFunctionInValidationInterfaceQueue([proxy] { proxy->connect(proxy); }); });
+        });
         }
+        promise.get_future().wait();
         return handler;
     }
     std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) override
