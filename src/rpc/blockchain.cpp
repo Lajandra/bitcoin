@@ -832,10 +832,10 @@ static std::optional<kernel::CCoinsStats> GetUTXOStats(CCoinsView* view, node::B
     // Use CoinStatsIndex if it is requested and available and a hash_type of Muhash or None was requested
     if ((hash_type == kernel::CoinStatsHashType::MUHASH || hash_type == kernel::CoinStatsHashType::NONE) && g_coin_stats_index && index_requested) {
         if (pindex) {
-            return g_coin_stats_index->LookUpStats(pindex);
+            return g_coin_stats_index->LookUpStats({pindex->GetBlockHash(), pindex->nHeight});
         } else {
             CBlockIndex* block_index = WITH_LOCK(::cs_main, return blockman.LookupBlockIndex(view->GetBestBlock()));
-            return g_coin_stats_index->LookUpStats(block_index);
+            return g_coin_stats_index->LookUpStats({block_index->GetBlockHash(), block_index->nHeight});
         }
     }
 
@@ -2237,8 +2237,8 @@ static RPCHelpMan getblockfilter()
 
     BlockFilter filter;
     uint256 filter_header;
-    if (!index->LookupFilter(block_index, filter) ||
-        !index->LookupFilterHeader(block_index, filter_header)) {
+    if (!index->LookupFilter({block_index->GetBlockHash(), block_index->nHeight}, filter) ||
+        !index->LookupFilterHeader({block_index->GetBlockHash(), block_index->nHeight}, filter_header)) {
         int err_code;
         std::string errmsg = "Filter not found.";
 
