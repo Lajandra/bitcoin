@@ -39,6 +39,7 @@
 #include <timedata.h>
 #include <txmempool.h>
 #include <uint256.h>
+#include <undo.h>
 #include <univalue.h>
 #include <util/check.h>
 #include <util/syscall_sandbox.h>
@@ -369,8 +370,8 @@ bool FillBlock(const CBlockIndex* index, const FoundBlock& block, UniqueLock<Rec
 class NotificationsProxy : public CValidationInterface
 {
 public:
-    explicit NotificationsProxy(std::shared_ptr<Chain::Notifications> notifications)
-        : m_notifications(std::move(notifications)) {}
+    explicit NotificationsProxy(std::shared_ptr<Chain::Notifications> notifications, const Chain::NotifyOptions& options)
+        : m_notifications(std::move(notifications)), m_options(options) {}
     virtual ~NotificationsProxy() = default;
     void TransactionAddedToMempool(const CTransactionRef& tx, uint64_t mempool_sequence) override
     {
@@ -382,11 +383,17 @@ public:
     }
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
-        m_notifications->blockConnected(node::MakeBlockInfo(index, block.get()));
+        interfaces::BlockInfo block_info = MakeBlockInfo(index, block.get());
+        CBlockUndo undo_data;
+        ReadBlockData(index, /*data=*/nullptr, m_options.connect_undo_data ? &undo_data : nullptr, block_info);
+        m_notifications->blockConnected(block_info);
     }
     void BlockDisconnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
-        m_notifications->blockDisconnected(node::MakeBlockInfo(index, block.get()));
+        interfaces::BlockInfo block_info = MakeBlockInfo(index, block.get());
+        CBlockUndo undo_data;
+        ReadBlockData(index, /*data=*/nullptr, m_options.disconnect_undo_data ? &undo_data : nullptr, block_info);
+        m_notifications->blockDisconnected(block_info);
     }
     void UpdatedBlockTip(const CBlockIndex* index, const CBlockIndex* fork_index, bool is_ibd) override
     {
@@ -406,14 +413,15 @@ public:
         self->m_state = DISCONNECTED;
     }
     std::shared_ptr<Chain::Notifications> m_notifications;
+    Chain::NotifyOptions m_options;
     enum { UNREGISTERED, REGISTERED, DISCONNECTED } m_state = UNREGISTERED;
 };
 
 class NotificationsHandlerImpl : public Handler
 {
 public:
-    explicit NotificationsHandlerImpl(std::shared_ptr<Chain::Notifications> notifications, bool connect)
-        : m_proxy(std::make_shared<NotificationsProxy>(std::move(notifications)))
+    explicit NotificationsHandlerImpl(std::shared_ptr<Chain::Notifications> notifications, const Chain::NotifyOptions& options, bool connect)
+        : m_proxy(std::make_shared<NotificationsProxy>(std::move(notifications), options))
     {
         if (connect) m_proxy->connect(m_proxy);
     }
@@ -754,7 +762,7 @@ public:
         interfaces::BlockInfo block_info = node::MakeBlockInfo(locator_block);
         block_info.chain_tip = locator_block == active.m_chain.Tip();
         if (!block_info.chain_tip && !checkBlocks(locator_block)) return nullptr;
-        handler = std::make_unique<NotificationsHandlerImpl>(notifications, /*connect=*/false);
+        handler = std::make_unique<NotificationsHandlerImpl>(notifications, options, /*connect=*/false);
         handler->m_thread_sync = std::thread(&util::TraceThread, options.thread_name, [&block_info, &promise, &active, locator_block, notifications, handler = handler.get()] {
             SetSyscallSandboxPolicy(SyscallSandboxPolicy::TX_INDEX);
             notifications->blockConnected(block_info);
@@ -768,7 +776,7 @@ public:
     }
     std::unique_ptr<Handler> handleNotifications(std::shared_ptr<Notifications> notifications) override
     {
-        return std::make_unique<NotificationsHandlerImpl>(std::move(notifications), /*connect=*/true);
+        return std::make_unique<NotificationsHandlerImpl>(std::move(notifications), Chain::NotifyOptions{}, /*connect=*/true);
     }
     void waitForNotifications() override
     {
