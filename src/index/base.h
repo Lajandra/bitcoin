@@ -13,7 +13,6 @@
 
 class BaseIndexNotifications;
 class CBlock;
-class CBlockIndex;
 class CChainState;
 namespace interfaces {
 class Chain;
@@ -60,7 +59,7 @@ private:
     std::atomic<bool> m_synced{false};
 
     /// The last block in the chain that the index is in sync with.
-    std::atomic<const CBlockIndex*> m_best_block_index{nullptr};
+    std::optional<interfaces::BlockKey> m_best_block GUARDED_BY(m_mutex);
 
     /// Read best block locator and check that data needed to sync has not been pruned.
     bool Init();
@@ -88,8 +87,9 @@ private:
 >>>>>>> 4389f0cdc8a (indexes, refactor: Add Commit CBlockLocator& argument)
 
     /// Loop over disconnected blocks and call CustomRemove.
-    bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
+    bool Rewind(const interfaces::BlockKey& current_tip, const interfaces::BlockKey& new_tip);
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> 7f03da8d12b (indexes, refactor: Remove CBlockIndex* uses in index Rewind methods)
@@ -99,6 +99,11 @@ private:
 =======
     Mutex m_mutex;
 >>>>>>> dd832e81e91 (indexes, refactor: Remove index validation interface and block locator code)
+||||||| parent of 3b3f66ec486 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
+    Mutex m_mutex;
+=======
+    mutable Mutex m_mutex;
+>>>>>>> 3b3f66ec486 (indexes, refactor: Remove remaining CBlockIndex* pointers from indexing code)
     friend class BaseIndexNotifications;
     std::shared_ptr<BaseIndexNotifications> m_notifications GUARDED_BY(m_mutex);
     std::unique_ptr<interfaces::Handler> m_handler GUARDED_BY(m_mutex);
@@ -106,7 +111,6 @@ private:
 >>>>>>> 8cb6c143805 (indexes, refactor: Remove index Init method)
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
-    CChainState* m_chainstate{nullptr};
 
     /// Return custom notification options for index.
     [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
