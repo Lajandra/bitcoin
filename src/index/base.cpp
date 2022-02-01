@@ -53,6 +53,18 @@ public:
     void blockConnected(const interfaces::BlockInfo& block) override;
     void blockDisconnected(const interfaces::BlockInfo& block) override;
     void chainStateFlushed(const CBlockLocator& locator) override;
+    std::optional<interfaces::BlockKey> getBest()
+    {
+        LOCK(m_index.m_mutex);
+        return m_index.m_best_block;
+    }
+    void setBest(const interfaces::BlockKey& block)
+    {
+        LOCK(m_index.m_mutex);
+        assert(!block.hash.IsNull());
+        assert(block.height >= 0);
+        m_index.m_best_block = block;
+    }
 
     BaseIndex& m_index;
     std::optional<bool> m_init_result;
@@ -63,8 +75,8 @@ public:
     //! and last disconnected blocks as an inclusive range. If start is set and
     //! end is null it means an error has occurred, and the index will stop
     //! trying to rewind and handle the error on the next new block or flush.
-    const CBlockIndex* m_rewind_start = nullptr;
-    const CBlockIndex* m_rewind_end = nullptr;
+    std::optional<interfaces::BlockKey> m_rewind_start;
+    std::optional<interfaces::BlockKey> m_rewind_end;
 };
 
 void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
@@ -73,7 +85,6 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         FatalError("%s", block.error);
         return m_index.Interrupt();
     }
-    const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
     if (!m_index.m_synced && !block.data) {
         // Before sync, attachChain will send an initial blockConnected event
         // without any block data, indicating the starting block (based on the
@@ -83,11 +94,15 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
         // will be sent with block data, followed by a final blockConnected
         // event without block data, to finish the sync and update
         // m_best_block_index and m_synced.
-        m_index.m_best_block_index = pindex;
+        if (block.height >= 0) {
+            setBest({block.hash, block.height});
+        } else {
+            assert(!getBest());
+        }
         if (block.chain_tip) {
             m_index.m_synced = true;
-            if (pindex) {
-                LogPrintf("%s is enabled at height %d\n", m_index.GetName(), pindex->nHeight);
+            if (block.height >= 0) {
+                LogPrintf("%s is enabled at height %d\n", m_index.GetName(), block.height);
             } else {
                 LogPrintf("%s is enabled\n", m_index.GetName());
             }
@@ -101,11 +116,17 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
 
     bool success = !m_rewind_start || m_rewind_end;
     if (m_rewind_start && success) {
-        const CBlockIndex* best_block_index = m_index.m_best_block_index.load();
-        assert(!best_block_index || best_block_index->GetAncestor(pindex->nHeight - 1) == pindex->pprev);
-        m_index.m_best_block_index = pindex->pprev;
-        chainStateFlushed(GetLocator(*m_index.m_chain, pindex->pprev->GetBlockHash()));
-        success = m_index.m_best_block_index == pindex->pprev;
+        auto best_block = getBest();
+        // Assert m_best_block is null or is parent of new connected block, or is
+        // descendant of parent of new connected block.
+        if (best_block && best_block->hash != *block.prev_hash) {
+            uint256 best_ancestor_hash;
+            assert(m_index.m_chain->findAncestorByHeight(best_block->hash, block.height - 1, FoundBlock().hash(best_ancestor_hash)));
+            assert(best_ancestor_hash == *block.prev_hash);
+        }
+        setBest({*block.prev_hash, block.height-1});
+        chainStateFlushed(GetLocator(*m_index.m_chain, *block.prev_hash));
+        success = getBest()->hash == *block.prev_hash;
     }
     if (!success) {
         FatalError("%s: Failed to rewind index %s to a previous chain tip",
@@ -116,12 +137,12 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
     int64_t current_time = GetTime();
     if (m_last_log_time + SYNC_LOG_INTERVAL < current_time) {
         LogPrintf("Syncing %s with block chain from height %d\n",
-                  m_index.GetName(), pindex->nHeight);
+                  m_index.GetName(), block.height);
         m_last_log_time = current_time;
     }
     if (!m_index.CustomAppend(block)) {
         FatalError("%s: Failed to write block %s to index",
-                   __func__, pindex->GetBlockHash().ToString());
+                   __func__, block.hash.ToString());
         return m_index.Interrupt();
     }
     // Only update m_best_block_index between flushes if synced. Unclear why
@@ -129,14 +150,14 @@ void BaseIndexNotifications::blockConnected(const interfaces::BlockInfo& block)
     // longstanding behavior since syncing was introduced in #13033 so care
     // should be taken if changing m_best_block_index semantics.
     if (m_index.m_synced) {
-        m_index.m_best_block_index = pindex;
+        setBest({block.hash, block.height});
     } else if (m_last_locator_write_time + SYNC_LOCATOR_WRITE_INTERVAL < current_time) {
-        m_index.m_best_block_index = pindex;
+        setBest({block.hash, block.height});
         m_last_locator_write_time = current_time;
         // No need to handle errors in Commit. If it fails, the error will be already be
         // logged. The best way to recover is to continue, as index cannot be corrupted by
         // a missed commit to disk for an advanced index state.
-        m_index.Commit(GetLocator(*m_index.m_chain, pindex->GetBlockHash()));
+        m_index.Commit(GetLocator(*m_index.m_chain, block.hash));
     }
 }
 
@@ -147,12 +168,12 @@ void BaseIndexNotifications::blockDisconnected(const interfaces::BlockInfo& bloc
         return m_index.Interrupt();
     }
 
-    const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_index.m_chainstate->m_blockman.LookupBlockIndex(block.hash));
-    if (!m_rewind_start || m_rewind_end) m_rewind_end = pindex;
-    if (!m_rewind_start) m_rewind_start = pindex;
+    auto best_block = getBest();
+    if (!m_rewind_start || m_rewind_end) m_rewind_end = best_block;
+    if (!m_rewind_start) m_rewind_start = best_block;
 
     if (m_rewind_end && !m_index.CustomRemove(block)) {
-        m_rewind_end = nullptr;
+        m_rewind_end = std::nullopt;
     }
 }
 
@@ -168,9 +189,9 @@ void BaseIndexNotifications::chainStateFlushed(const CBlockLocator& locator)
     // throw and lead to a graceful shutdown
     if (!m_index.Commit(locator) && m_rewind_start) {
         // If commit fails, revert the best block index to avoid corruption.
-        m_index.m_best_block_index = m_rewind_start;
+        setBest(*m_rewind_start);
     }
-    m_rewind_start = nullptr;
+    m_rewind_start = std::nullopt;
 }
 
 BaseIndex::DB::DB(const fs::path& path, size_t n_cache_size, bool f_memory, bool f_wipe, bool f_obfuscate) :
@@ -482,14 +503,13 @@ bool BaseIndex::BlockUntilSyncedToCurrentChain() const
         return false;
     }
 
-    if (const CBlockIndex* index = m_best_block_index.load()) {
-        interfaces::BlockKey best_block{index->GetBlockHash(), index->nHeight};
+    if (const auto best_block = WITH_LOCK(m_mutex, return m_best_block)) {
         // Skip the queue-draining stuff if we know we're caught up with
         // m_chain.Tip().
         interfaces::BlockKey tip;
         uint256 ancestor;
         if (m_chain->getTip(FoundBlock().hash(tip.hash).height(tip.height)) &&
-            m_chain->findAncestorByHeight(best_block.hash, tip.height, FoundBlock().hash(ancestor)) &&
+            m_chain->findAncestorByHeight(best_block->hash, tip.height, FoundBlock().hash(ancestor)) &&
             ancestor == tip.hash) {
             return true;
         }
@@ -509,10 +529,6 @@ void BaseIndex::Interrupt()
 
 bool BaseIndex::Start()
 {
-    // m_chainstate member gives indexing code access to node internals. It
-    // will be removed in upcoming commit
-    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
-
     CBlockLocator locator;
     if (!GetDB().ReadBestBlock(locator)) {
         locator.SetNull();
@@ -549,6 +565,7 @@ IndexSummary BaseIndex::GetSummary() const
     IndexSummary summary{};
     summary.name = GetName();
     summary.synced = m_synced;
-    summary.best_block_height = m_best_block_index ? m_best_block_index.load()->nHeight : 0;
+    const auto best_block = WITH_LOCK(m_mutex, return m_best_block);
+    summary.best_block_height = best_block ? best_block->height : 0;
     return summary;
 }
