@@ -24,13 +24,13 @@ const std::function<std::vector<const char*>()> G_TEST_COMMAND_LINE_ARGUMENTS{};
 
 namespace {
 
-void GenerateTemplateResults(const std::vector<ankerl::nanobench::Result>& benchmarkResults, const std::string& filename, const char* tpl)
+void GenerateTemplateResults(const std::vector<ankerl::nanobench::Result>& benchmarkResults, const fs::path& filename, const char* tpl)
 {
     if (benchmarkResults.empty() || filename.empty()) {
         // nothing to write, bail out
         return;
     }
-    std::ofstream fout{fs::PathFromString(filename)};
+    std::ofstream fout{filename};
     if (fout.is_open()) {
         ankerl::nanobench::render(tpl, benchmarkResults, fout);
     } else {
