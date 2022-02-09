@@ -357,7 +357,7 @@ void BaseIndex::Interrupt()
 bool BaseIndex::Start()
 {
     // m_chainstate member gives indexing code access to node internals. It
-    // will be removed in upcommit commit
+    // will be removed in upcoming commit
     m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
     // Need to register this ValidationInterface before running Init(), so that
     // callbacks are not missed if Init sets m_synced to true.
