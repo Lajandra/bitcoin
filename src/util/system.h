@@ -265,16 +265,6 @@ protected:
     std::optional<const Command> GetCommand() const;
 
     /**
-     * Get a normalized path from a specified pathlike argument
-     *
-     * It is guaranteed that the returned path has no trailing slashes.
-     *
-     * @param pathlike_arg Pathlike argument to get a path from (e.g., "-datadir", "-blocksdir" or "-walletdir")
-     * @return Normalized path which is get from a specified pathlike argument
-     */
-    fs::path GetPathArg(std::string pathlike_arg) const;
-
-    /**
      * Get blocks directory path
      *
      * @return Blocks path which is network specific
@@ -335,6 +325,16 @@ protected:
      * @return command-line argument or default value
      */
     std::string GetArg(const std::string& strArg, const std::string& strDefault) const;
+
+    /**
+     * Return path argument or default value
+     *
+     * It is guaranteed that the returned path has no trailing slashes.
+     *
+     * @param arg Argument to get a path from (e.g., "-datadir", "-blocksdir" or "-walletdir")
+     * @return Lexically normalized path without trailing separators
+     */
+    fs::path GetPathArg(const std::string& arg, const fs::path& default_value={}) const;
 
     /**
      * Return integer argument or default value

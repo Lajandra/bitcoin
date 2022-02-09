@@ -249,6 +249,14 @@ BOOST_AUTO_TEST_CASE(patharg)
 
     ResetArgs("-dir=user/.bitcoin/.//");
     BOOST_CHECK_EQUAL(m_local_args.GetPathArg("-dir"), relative_path);
+
+    // Check negated and default arguments
+    ResetArgs("-dir=override");
+    BOOST_CHECK_EQUAL(m_local_args.GetPathArg("-dir", "default"), fs::path{"override"});
+    ResetArgs("");
+    BOOST_CHECK_EQUAL(m_local_args.GetPathArg("-dir", "default"), fs::path{"default"});
+    ResetArgs("-nodir");
+    BOOST_CHECK_EQUAL(m_local_args.GetPathArg("-dir", "default"), fs::path{""});
 }
 
 BOOST_AUTO_TEST_CASE(doubledash)
