@@ -120,6 +120,7 @@ endif
 .PHONY: FORCE check-symbols check-security
 
 BITCOIN_KERNEL_H = \
+  kernel/context.h \
   kernel/init/common.h \
   kernel/timedata.h
 
@@ -200,6 +201,7 @@ BITCOIN_CORE_H = \
   node/coin.h \
   node/coinstats.h \
   node/context.h \
+  node/globals.h \
   node/miner.h \
   node/minisketchwrapper.h \
   node/psbt.h \
@@ -369,6 +371,7 @@ libbitcoin_node_a_SOURCES = \
   node/coin.cpp \
   node/coinstats.cpp \
   node/context.cpp \
+  node/globals.cpp \
   node/interfaces.cpp \
   node/miner.cpp \
   node/minisketchwrapper.cpp \

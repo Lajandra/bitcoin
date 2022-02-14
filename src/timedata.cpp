@@ -8,7 +8,10 @@
 
 #include <timedata.h>
 
+#include <kernel/context.h>
+#include <kernel/timedata.h>
 #include <netaddress.h>
+#include <node/globals.h>
 #include <node/ui_interface.h>
 #include <sync.h>
 #include <tinyformat.h>
@@ -16,11 +19,26 @@
 #include <util/translation.h>
 #include <warnings.h>
 
+int64_t GetTimeOffset()
+{
+    return kernel::GetTimeOffset(node::g_kernel);
+}
+
+int64_t GetAdjustedTime()
+{
+    return kernel::GetAdjustedTime(node::g_kernel);
+}
+
 #define BITCOIN_TIMEDATA_MAX_SAMPLES 200
 
 void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
 {
-    LOCK(g_timeoffset_mutex);
+    kernel::Context& context = node::g_kernel;
+
+    LOCK(context.timeoffset_mutex);
+
+    int64_t& nTimeOffset = context.time_offset;
+
     // Ignore duplicates
     static std::set<CNetAddr> setKnown;
     if (setKnown.size() == BITCOIN_TIMEDATA_MAX_SAMPLES)

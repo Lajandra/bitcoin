@@ -74,4 +74,11 @@ public:
 
 void AddTimeData(const CNetAddr& ip, int64_t nTime);
 
+/**
+ * Get time functions for compatibility with existing code. Prefer calling
+ * kernel:: methods directly to avoid reliance on hidden state.
+ */
+int64_t GetTimeOffset();
+int64_t GetAdjustedTime();
+
 #endif // BITCOIN_TIMEDATA_H

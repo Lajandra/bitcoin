@@ -5,8 +5,6 @@
 
 #include <node/miner.h>
 
-#include <kernel/timedata.h>
-
 #include <chain.h>
 #include <chainparams.h>
 #include <coins.h>
@@ -20,6 +18,7 @@
 #include <policy/policy.h>
 #include <pow.h>
 #include <primitives/transaction.h>
+#include <timedata.h>
 #include <util/moneystr.h>
 #include <util/system.h>
 #include <validation.h>

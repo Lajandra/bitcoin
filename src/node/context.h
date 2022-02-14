@@ -25,6 +25,9 @@ class ChainClient;
 class Init;
 class WalletLoader;
 } // namespace interfaces
+namespace kernel {
+struct Context;
+} // namespace kernel
 
 namespace node {
 //! NodeContext struct containing references to chain state and connection
@@ -38,6 +41,8 @@ namespace node {
 //! any member functions. It should just be a collection of references that can
 //! be used without pulling in unwanted dependencies or functionality.
 struct NodeContext {
+    //! libbitcoin_kernel context
+    kernel::Context* kernel{nullptr};
     //! Init interface for initializing current process and connecting to other processes.
     interfaces::Init* init{nullptr};
     std::unique_ptr<AddrMan> addrman;

@@ -5,15 +5,13 @@
 #ifndef BITCOIN_KERNEL_TIMEDATA_H
 #define BITCOIN_KERNEL_TIMEDATA_H
 
-#include <sync.h>
-
 #include <stdint.h>
 
-extern Mutex g_timeoffset_mutex;
-extern int64_t nTimeOffset GUARDED_BY(g_timeoffset_mutex);
-
+namespace kernel {
+struct Context;
 /** Functions to keep track of adjusted P2P time */
-int64_t GetTimeOffset();
-int64_t GetAdjustedTime();
+int64_t GetTimeOffset(Context& context);
+int64_t GetAdjustedTime(Context& context);
+} // namespace kernel
 
 #endif // BITCOIN_KERNEL_TIMEDATA_H
