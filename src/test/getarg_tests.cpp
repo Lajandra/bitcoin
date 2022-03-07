@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(setting_args)
     BOOST_CHECK_EQUAL(args.GetBoolArg("str_setting", true), false);
     BOOST_CHECK_EQUAL(args.GetBoolArg("str_setting", false), false);
 
-    BOOST_CHECK_THROW(args.GetArg("int_setting", ""), std::runtime_error);
+    BOOST_CHECK_EQUAL(args.GetArg("int_setting", ""), "99");
     BOOST_CHECK_EQUAL(args.GetIntArg("int_setting", 100), 99);
     BOOST_CHECK_THROW(args.GetBoolArg("int_setting", true), std::runtime_error);
     BOOST_CHECK_THROW(args.GetBoolArg("int_setting", false), std::runtime_error);
