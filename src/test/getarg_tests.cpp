@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <test/util/setup_common.h>
+#include <util/settings.h>
 #include <util/strencodings.h>
 #include <util/system.h>
 
@@ -13,6 +14,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/test/unit_test.hpp>
+#include <univalue.h>
 
 BOOST_FIXTURE_TEST_SUITE(getarg_tests, BasicTestingSetup)
 
@@ -39,6 +41,46 @@ void SetupArgs(ArgsManager& local_args, const std::vector<std::pair<std::string,
     for (const auto& arg : args) {
         local_args.AddArg(arg.first, "", arg.second, OptionsCategory::OPTIONS);
     }
+}
+
+// Test behavior of GetArg functions when string, integer, and boolean types are
+// specified in settings.json file.
+BOOST_AUTO_TEST_CASE(setting_args)
+{
+    ArgsManager local_args;
+    SetupArgs(local_args, {
+        {"-str_setting", ArgsManager::ALLOW_ANY},
+        {"-int_setting", ArgsManager::ALLOW_ANY},
+        {"-true_setting", ArgsManager::ALLOW_ANY},
+        {"-false_setting", ArgsManager::ALLOW_ANY},
+    });
+
+    local_args.LockSettings([&](util::Settings& settings) {
+        settings.rw_settings["str_setting"] = "str";
+        settings.rw_settings["int_setting"] = 99;
+        settings.rw_settings["true_setting"] = true;
+        settings.rw_settings["false_setting"] = false;
+    });
+
+    BOOST_CHECK_EQUAL(local_args.GetArg("str_setting", ""), "str");
+    BOOST_CHECK_EQUAL(local_args.GetIntArg("str_setting", 100), 0);
+    BOOST_CHECK_EQUAL(local_args.GetBoolArg("str_setting", true), false);
+    BOOST_CHECK_EQUAL(local_args.GetBoolArg("str_setting", false), false);
+
+    BOOST_CHECK_EQUAL(local_args.GetArg("int_setting", ""), "99");
+    BOOST_CHECK_EQUAL(local_args.GetIntArg("int_setting", 100), 99);
+    BOOST_CHECK_THROW(local_args.GetBoolArg("int_setting", true), std::runtime_error);
+    BOOST_CHECK_THROW(local_args.GetBoolArg("int_setting", false), std::runtime_error);
+
+    BOOST_CHECK_EQUAL(local_args.GetArg("true_setting", ""), "1");
+    BOOST_CHECK_EQUAL(local_args.GetIntArg("true_setting", 100), 1);
+    BOOST_CHECK_EQUAL(local_args.GetBoolArg("true_setting", true), true);
+    BOOST_CHECK_EQUAL(local_args.GetBoolArg("true_setting", false), true);
+
+    BOOST_CHECK_EQUAL(local_args.GetArg("false_setting", ""), "0");
+    BOOST_CHECK_EQUAL(local_args.GetIntArg("false_setting", 100), 0);
+    BOOST_CHECK_EQUAL(local_args.GetBoolArg("false_setting", true), false);
+    BOOST_CHECK_EQUAL(local_args.GetBoolArg("false_setting", false), false);
 }
 
 BOOST_AUTO_TEST_CASE(boolarg)
