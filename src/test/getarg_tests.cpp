@@ -3,6 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <test/util/setup_common.h>
+#include <univalue.h>
+#include <util/settings.h>
 #include <util/strencodings.h>
 #include <util/system.h>
 
@@ -39,6 +41,60 @@ void SetupArgs(ArgsManager& local_args, const std::vector<std::pair<std::string,
     for (const auto& arg : args) {
         local_args.AddArg(arg.first, "", arg.second, OptionsCategory::OPTIONS);
     }
+}
+
+// Test behavior of GetArg functions when string, integer, and boolean types are
+// specified in settings.json file.
+BOOST_AUTO_TEST_CASE(setting_args)
+{
+    ArgsManager args;
+    SetupArgs(args, {
+        {"-str_setting", ArgsManager::ALLOW_ANY},
+        {"-int_setting", ArgsManager::ALLOW_ANY},
+        {"-true_setting", ArgsManager::ALLOW_ANY},
+        {"-false_setting", ArgsManager::ALLOW_ANY},
+        {"-object_setting", ArgsManager::ALLOW_ANY},
+        {"-array_setting", ArgsManager::ALLOW_ANY},
+    });
+
+    args.LockSettings([&](util::Settings& settings) {
+        settings.rw_settings["str_setting"] = "str";
+        settings.rw_settings["int_setting"] = 99;
+        settings.rw_settings["true_setting"] = true;
+        settings.rw_settings["false_setting"] = false;
+        settings.rw_settings["object_setting"] = UniValue::VOBJ;
+        settings.rw_settings["array_setting"] = UniValue::VARR;
+    });
+
+    BOOST_CHECK_EQUAL(args.GetArg("str_setting", ""), "str");
+    BOOST_CHECK_EQUAL(args.GetIntArg("str_setting", 100), 0);
+    BOOST_CHECK_EQUAL(args.GetBoolArg("str_setting", true), false);
+    BOOST_CHECK_EQUAL(args.GetBoolArg("str_setting", false), false);
+
+    BOOST_CHECK_THROW(args.GetArg("int_setting", ""), std::runtime_error);
+    BOOST_CHECK_EQUAL(args.GetIntArg("int_setting", 100), 99);
+    BOOST_CHECK_THROW(args.GetBoolArg("int_setting", true), std::runtime_error);
+    BOOST_CHECK_THROW(args.GetBoolArg("int_setting", false), std::runtime_error);
+
+    BOOST_CHECK_EQUAL(args.GetArg("true_setting", ""), "1");
+    BOOST_CHECK_EQUAL(args.GetIntArg("true_setting", 100), 1);
+    BOOST_CHECK_EQUAL(args.GetBoolArg("true_setting", true), true);
+    BOOST_CHECK_EQUAL(args.GetBoolArg("true_setting", false), true);
+
+    BOOST_CHECK_EQUAL(args.GetArg("false_setting", ""), "0");
+    BOOST_CHECK_EQUAL(args.GetIntArg("false_setting", 100), 0);
+    BOOST_CHECK_EQUAL(args.GetBoolArg("false_setting", true), false);
+    BOOST_CHECK_EQUAL(args.GetBoolArg("false_setting", false), false);
+
+    BOOST_CHECK_THROW(args.GetArg("object_setting", ""), std::runtime_error);
+    BOOST_CHECK_THROW(args.GetIntArg("object_setting", 100), std::runtime_error);
+    BOOST_CHECK_THROW(args.GetBoolArg("object_setting", true), std::runtime_error);
+    BOOST_CHECK_THROW(args.GetBoolArg("object_setting", false), std::runtime_error);
+
+    BOOST_CHECK_THROW(args.GetArg("array_setting", ""), std::runtime_error);
+    BOOST_CHECK_THROW(args.GetIntArg("array_setting", 100), std::runtime_error);
+    BOOST_CHECK_THROW(args.GetBoolArg("array_setting", true), std::runtime_error);
+    BOOST_CHECK_THROW(args.GetBoolArg("array_setting", false), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(boolarg)
