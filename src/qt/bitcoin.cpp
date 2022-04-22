@@ -280,8 +280,7 @@ void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
 void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
 {
     assert(!m_splash);
-    m_splash = new SplashScreen(networkStyle);
-    m_splash->setNode(node());
+    m_splash = new SplashScreen(node(), networkStyle);
     // We don't hold a direct pointer to the splash screen after creation, but the splash
     // screen will take care of deleting itself when finish() happens.
     m_splash->show();
