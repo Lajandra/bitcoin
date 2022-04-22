@@ -27,8 +27,8 @@
 #include <QScreen>
 
 
-SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
-    : QWidget(), curAlignment(0)
+SplashScreen::SplashScreen(interfaces::Node& node, const NetworkStyle* networkStyle)
+    : QWidget(), curAlignment(0), m_node{node}
 {
     // set reference point, paddings
     int paddingRight            = 50;
@@ -130,25 +130,19 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     installEventFilter(this);
 
     GUIUtil::handleCloseWindowShortcut(this);
+
+    subscribeToCoreSignals();
 }
 
 SplashScreen::~SplashScreen()
 {
-    if (m_node) unsubscribeFromCoreSignals();
-}
-
-void SplashScreen::setNode(interfaces::Node& node)
-{
-    assert(!m_node);
-    m_node = &node;
-    subscribeToCoreSignals();
-    if (m_shutdown) m_node->startShutdown();
+    unsubscribeFromCoreSignals();
 }
 
 void SplashScreen::shutdown()
 {
     m_shutdown = true;
-    if (m_node) m_node->startShutdown();
+    m_node.startShutdown();
 }
 
 bool SplashScreen::eventFilter(QObject * obj, QEvent * ev) {
@@ -192,16 +186,16 @@ static void ShowProgress(SplashScreen *splash, const std::string &title, int nPr
 void SplashScreen::subscribeToCoreSignals()
 {
     // Connect signals to client
-    m_handler_init_message = m_node->handleInitMessage(std::bind(InitMessage, this, std::placeholders::_1));
-    m_handler_show_progress = m_node->handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    m_handler_init_wallet = m_node->handleInitWallet([this]() { handleLoadWallet(); });
+    m_handler_init_message = m_node.handleInitMessage(std::bind(InitMessage, this, std::placeholders::_1));
+    m_handler_show_progress = m_node.handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    m_handler_init_wallet = m_node.handleInitWallet([this]() { handleLoadWallet(); });
 }
 
 void SplashScreen::handleLoadWallet()
 {
 #ifdef ENABLE_WALLET
     if (!WalletModel::isWalletEnabled()) return;
-    m_handler_load_wallet = m_node->walletLoader().handleLoadWallet([this](std::unique_ptr<interfaces::Wallet> wallet) {
+    m_handler_load_wallet = m_node.walletLoader().handleLoadWallet([this](std::unique_ptr<interfaces::Wallet> wallet) {
         m_connected_wallet_handlers.emplace_back(wallet->handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2, false)));
         m_connected_wallets.emplace_back(std::move(wallet));
     });

@@ -28,9 +28,8 @@ class SplashScreen : public QWidget
     Q_OBJECT
 
 public:
-    explicit SplashScreen(const NetworkStyle *networkStyle);
+    explicit SplashScreen(interfaces::Node& node, const NetworkStyle* networkStyle);
     ~SplashScreen();
-    void setNode(interfaces::Node& node);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -62,7 +61,7 @@ private:
     QColor curColor;
     int curAlignment;
 
-    interfaces::Node* m_node = nullptr;
+    interfaces::Node& m_node;
     bool m_shutdown = false;
     std::unique_ptr<interfaces::Handler> m_handler_init_message;
     std::unique_ptr<interfaces::Handler> m_handler_show_progress;
