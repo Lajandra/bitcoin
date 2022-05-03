@@ -653,6 +653,9 @@ bool BlockManager::FindUndoPos(BlockValidationState& state, int nFile, FlatFileP
     return true;
 }
 
+/* Size of header written by WriteBlockToDisk() before a serialized CBlock */
+static constexpr size_t BLOCK_SERIALIZATION_HEADER_SIZE = CMessageHeader::MESSAGE_START_SIZE + sizeof(unsigned int);
+
 static bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos, const CMessageHeader::MessageStartChars& messageStart)
 {
     // Open history file to append
@@ -792,8 +795,12 @@ FlatFilePos BlockManager::SaveBlockToDisk(const CBlock& block, int nHeight, CCha
     FlatFilePos blockPos;
     if (dbp != nullptr) {
         blockPos = *dbp;
+        // Subtract header size because FindBlockPos() and WriteBlockToDisk()
+        // calls below both expect to be passed the position of the header
+        // before the CBlock, not the position of the CBlock.
+        blockPos.nPos -= BLOCK_SERIALIZATION_HEADER_SIZE;
     }
-    if (!FindBlockPos(blockPos, nBlockSize + 8, nHeight, active_chain, block.GetBlockTime(), dbp != nullptr)) {
+    if (!FindBlockPos(blockPos, nBlockSize + BLOCK_SERIALIZATION_HEADER_SIZE, nHeight, active_chain, block.GetBlockTime(), dbp != nullptr)) {
         error("%s: FindBlockPos failed", __func__);
         return FlatFilePos();
     }
@@ -802,6 +809,11 @@ FlatFilePos BlockManager::SaveBlockToDisk(const CBlock& block, int nHeight, CCha
             AbortNode("Failed to write block");
             return FlatFilePos();
         }
+    } else {
+        // Add header size to return position of the CBlock, not position of the
+        // header before the CBlock. In the WriteBlockToDisk() case above,
+        // blockPos is adjusted the same way by that function.
+        blockPos.nPos += BLOCK_SERIALIZATION_HEADER_SIZE;
     }
     return blockPos;
 }
