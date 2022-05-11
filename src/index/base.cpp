@@ -11,7 +11,6 @@
 #include <logging.h>
 #include <node/abort.h>
 #include <node/blockstorage.h>
-#include <node/context.h>
 #include <node/database_args.h>
 #include <node/interface_ui.h>
 #include <shutdown.h>
@@ -810,6 +809,7 @@ void BaseIndex::Interrupt()
 bool BaseIndex::StartBackgroundSync()
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (!m_init) throw std::logic_error("Error: Cannot start a non-initialized index");
 ||||||| parent of 42ba163fcdaa (indexes, refactor: Remove index Init method)
     // m_chainstate member gives indexing code access to node internals. It is
@@ -828,6 +828,12 @@ bool BaseIndex::StartBackgroundSync()
     // m_chainstate member gives indexing code access to node internals. It is
     // removed in followup https://github.com/bitcoin/bitcoin/pull/24230
     m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
+||||||| parent of fa75d70c44ad (Remove direct index -> node dependency)
+    // m_chainstate member gives indexing code access to node internals. It is
+    // removed in followup https://github.com/bitcoin/bitcoin/pull/24230
+    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
+=======
+>>>>>>> fa75d70c44ad (Remove direct index -> node dependency)
     CBlockLocator locator;
     if (!GetDB().ReadBestBlock(locator)) {
         locator.SetNull();
@@ -894,12 +900,12 @@ IndexSummary BaseIndex::GetSummary() const
 
 void BaseIndex::SetBestBlock(const interfaces::BlockKey& block)
 {
-    assert(!m_chainstate->m_blockman.IsPruneMode() || AllowPrune());
+    assert(!m_chain->pruningEnabled() || AllowPrune());
 
     if (AllowPrune()) {
         node::PruneLockInfo prune_lock;
         prune_lock.height_first = block.height;
-        WITH_LOCK(::cs_main, m_chainstate->m_blockman.UpdatePruneLock(GetName(), prune_lock));
+        m_chain->updatePruneLock(GetName(), prune_lock);
     }
 
     // Intentionally set m_best_block as the last step in this function,
