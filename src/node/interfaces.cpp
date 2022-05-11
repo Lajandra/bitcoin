@@ -743,6 +743,11 @@ public:
     CFeeRate relayMinFee() override { return ::minRelayTxFee; }
     CFeeRate relayIncrementalFee() override { return ::incrementalRelayFee; }
     CFeeRate relayDustFee() override { return ::dustRelayFee; }
+    void updatePruneLock(const std::string& name, const PruneLockInfo& lock_info) override
+    {
+        LOCK(cs_main);
+        m_node.chainman->m_blockman.UpdatePruneLock(name, lock_info);
+    }
     bool havePruned() override
     {
         LOCK(cs_main);
