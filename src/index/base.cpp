@@ -18,7 +18,6 @@
 >>>>>>> 78e624078b3 (indexes, refactor: Remove index Init method)
 #include <node/blockstorage.h>
 #include <node/chain.h>
-#include <node/context.h>
 #include <node/interface_ui.h>
 #include <shutdown.h>
 #include <tinyformat.h>
@@ -647,6 +646,7 @@ void BaseIndex::Interrupt()
 bool BaseIndex::Start()
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
     // m_chainstate member gives indexing code access to node internals. It is
     // removed in followup https://github.com/bitcoin/bitcoin/pull/24230
     m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
@@ -667,6 +667,12 @@ bool BaseIndex::Start()
     RegisterValidationInterface(this);
 =======
 >>>>>>> f9fdde531f5 (indexes, refactor: Remove index validation interface and block locator code)
+||||||| parent of 8ca844e3ad9 (Remove direct index -> node dependency)
+    // m_chainstate member gives indexing code access to node internals. It
+    // will be removed in upcoming commit
+    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
+=======
+>>>>>>> 8ca844e3ad9 (Remove direct index -> node dependency)
     CBlockLocator locator;
     if (!GetDB().ReadBestBlock(locator)) {
         locator.SetNull();
@@ -715,6 +721,6 @@ void BaseIndex::SetBestBlock(const interfaces::BlockKey& block) {
     if (AllowPrune()) {
         node::PruneLockInfo prune_lock;
         prune_lock.height_first = block.height;
-        WITH_LOCK(::cs_main, m_chainstate->m_blockman.UpdatePruneLock(GetName(), prune_lock));
+        m_chain->updatePruneLock(GetName(), prune_lock);
     }
 }
