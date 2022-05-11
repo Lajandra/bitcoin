@@ -104,8 +104,13 @@ private:
 
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
+<<<<<<< HEAD
     Chainstate* m_chainstate{nullptr};
     const std::string m_name;
+||||||| parent of 781c4d77588 (Remove direct index -> node dependency)
+    CChainState* m_chainstate{nullptr};
+=======
+>>>>>>> 781c4d77588 (Remove direct index -> node dependency)
 
     /// Return custom notification options for index.
     [[nodiscard]] virtual interfaces::Chain::NotifyOptions CustomOptions() { return {}; }
