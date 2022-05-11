@@ -731,6 +731,7 @@ public:
         if (!m_node.mempool) return {};
         return m_node.mempool->GetMinFee();
     }
+<<<<<<< HEAD
     CFeeRate relayMinFee() override
     {
         if (!m_node.mempool) return CFeeRate{DEFAULT_MIN_RELAY_TX_FEE};
@@ -746,6 +747,20 @@ public:
         if (!m_node.mempool) return CFeeRate{DUST_RELAY_TX_FEE};
         return m_node.mempool->m_dust_relay_feerate;
     }
+||||||| parent of ad9f581fcc7 (Remove direct index -> node dependency)
+    CFeeRate relayMinFee() override { return ::minRelayTxFee; }
+    CFeeRate relayIncrementalFee() override { return ::incrementalRelayFee; }
+    CFeeRate relayDustFee() override { return ::dustRelayFee; }
+=======
+    CFeeRate relayMinFee() override { return ::minRelayTxFee; }
+    CFeeRate relayIncrementalFee() override { return ::incrementalRelayFee; }
+    CFeeRate relayDustFee() override { return ::dustRelayFee; }
+    void updatePruneLock(const std::string& name, const PruneLockInfo& lock_info) override
+    {
+        LOCK(cs_main);
+        m_node.chainman->m_blockman.UpdatePruneLock(name, lock_info);
+    }
+>>>>>>> ad9f581fcc7 (Remove direct index -> node dependency)
     bool havePruned() override
     {
         LOCK(::cs_main);
