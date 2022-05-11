@@ -16,8 +16,13 @@
 ||||||| parent of dc6e868f41f (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
 =======
 #include <node/chain.h>
+<<<<<<< HEAD
 >>>>>>> dc6e868f41f (indexes, refactor: Remove CBlockIndex* uses in index WriteBlock methods)
 #include <node/context.h>
+||||||| parent of acfb6089041 (Remove direct index -> node dependency)
+#include <node/context.h>
+=======
+>>>>>>> acfb6089041 (Remove direct index -> node dependency)
 #include <node/ui_interface.h>
 >>>>>>> 0c192932448 (indexes, refactor: Pass Chain interface instead of CChainState class to indexes)
 #include <shutdown.h>
@@ -291,9 +296,6 @@ void BaseIndex::Interrupt()
 
 bool BaseIndex::Start()
 {
-    // m_chainstate member gives indexing code access to node internals. It
-    // will be removed in upcoming commit
-    m_chainstate = &m_chain->context()->chainman->ActiveChainstate();
     CBlockLocator locator;
     if (!GetDB().ReadBestBlock(locator)) {
         locator.SetNull();
@@ -342,6 +344,6 @@ void BaseIndex::SetBestBlock(const interfaces::BlockKey& block) {
     if (AllowPrune()) {
         node::PruneLockInfo prune_lock;
         prune_lock.height_first = block.height;
-        WITH_LOCK(::cs_main, m_chainstate->m_blockman.UpdatePruneLock(GetName(), prune_lock));
+        m_chain->updatePruneLock(GetName(), prune_lock);
     }
 }
