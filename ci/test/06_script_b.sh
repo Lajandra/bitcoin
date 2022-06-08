@@ -41,7 +41,12 @@ if [ "${RUN_TIDY}" = "true" ]; then
   CI_EXEC "python3 ${DIR_IWYU}/include-what-you-use/iwyu_tool.py"\
           " src/compat"\
           " src/init"\
+<<<<<<< HEAD
           " src/kernel/mempool_persist.cpp"\
+||||||| parent of e022eaf87c6 (ci: Enable IWYU in src/kernel directory)
+=======
+          " src/kernel"\
+>>>>>>> e022eaf87c6 (ci: Enable IWYU in src/kernel directory)
           " src/policy/feerate.cpp"\
           " src/policy/packages.cpp"\
           " src/policy/settings.cpp"\
