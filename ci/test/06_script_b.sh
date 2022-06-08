@@ -42,8 +42,14 @@ if [ "${RUN_TIDY}" = "true" ]; then
           " src/compat"\
           " src/dbwrapper.cpp"\
           " src/init"\
+<<<<<<< HEAD
           " src/kernel/mempool_persist.cpp"\
           " src/node/chainstate.cpp"\
+||||||| parent of fb31664f944 (ci: Enable IWYU in src/kernel directory)
+          " src/kernel/mempool_persist.cpp"\
+=======
+          " src/kernel"\
+>>>>>>> fb31664f944 (ci: Enable IWYU in src/kernel directory)
           " src/policy/feerate.cpp"\
           " src/policy/packages.cpp"\
           " src/policy/settings.cpp"\
