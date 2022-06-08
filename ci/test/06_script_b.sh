@@ -41,7 +41,7 @@ if [ "${RUN_TIDY}" = "true" ]; then
   CI_EXEC "python3 ${DIR_IWYU}/include-what-you-use/iwyu_tool.py"\
           " src/compat"\
           " src/init"\
-          " src/kernel/mempool_persist.cpp"\
+          " src/kernel"\
           " src/policy/feerate.cpp"\
           " src/policy/packages.cpp"\
           " src/policy/settings.cpp"\
