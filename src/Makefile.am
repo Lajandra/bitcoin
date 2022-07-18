@@ -736,7 +736,14 @@ libbitcoin_util_a_SOURCES = \
   util/moneystr.cpp \
   util/rbf.cpp \
   util/readwritefile.cpp \
+<<<<<<< HEAD
   util/signalinterrupt.cpp \
+||||||| parent of 28a954c70340 (refactor: Add util::Result multiple error and warning messages)
+  util/settings.cpp \
+=======
+  util/result.cpp \
+  util/settings.cpp \
+>>>>>>> 28a954c70340 (refactor: Add util::Result multiple error and warning messages)
   util/thread.cpp \
   util/threadinterrupt.cpp \
   util/threadnames.cpp \
@@ -973,6 +980,7 @@ libbitcoinkernel_la_SOURCES = \
   util/hasher.cpp \
   util/moneystr.cpp \
   util/rbf.cpp \
+  util/result.cpp \
   util/serfloat.cpp \
   util/signalinterrupt.cpp \
   util/strencodings.cpp \
