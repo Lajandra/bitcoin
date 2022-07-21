@@ -66,14 +66,14 @@ struct FuzzedWallet {
     CScript GetScriptPubKey(FuzzedDataProvider& fuzzed_data_provider)
     {
         auto type{fuzzed_data_provider.PickValueInArray(OUTPUT_TYPES)};
-        BResult<CTxDestination> op_dest;
+        util::Result<CTxDestination> op_dest;
         if (fuzzed_data_provider.ConsumeBool()) {
             op_dest = wallet->GetNewDestination(type, "");
         } else {
             op_dest = wallet->GetNewChangeDestination(type);
         }
-        assert(op_dest.HasRes());
-        return GetScriptForDestination(op_dest.GetObj());
+        assert(op_dest);
+        return GetScriptForDestination(*op_dest);
     }
 };
 

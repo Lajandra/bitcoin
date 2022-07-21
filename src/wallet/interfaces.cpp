@@ -146,7 +146,7 @@ public:
     void abortRescan() override { m_wallet->AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet->BackupWallet(filename); }
     std::string getWalletName() override { return m_wallet->GetName(); }
-    BResult<CTxDestination> getNewDestination(const OutputType type, const std::string label) override
+    util::Result<CTxDestination> getNewDestination(const OutputType type, const std::string label) override
     {
         LOCK(m_wallet->cs_wallet);
         return m_wallet->GetNewDestination(type, label);
@@ -249,17 +249,17 @@ public:
         LOCK(m_wallet->cs_wallet);
         return m_wallet->ListLockedCoins(outputs);
     }
-    BResult<CTransactionRef> createTransaction(const std::vector<CRecipient>& recipients,
+    util::Result<CTransactionRef> createTransaction(const std::vector<CRecipient>& recipients,
         const CCoinControl& coin_control,
         bool sign,
         int& change_pos,
         CAmount& fee) override
     {
         LOCK(m_wallet->cs_wallet);
-        const auto& res = CreateTransaction(*m_wallet, recipients, change_pos,
+        auto res = CreateTransaction(*m_wallet, recipients, change_pos,
                                      coin_control, sign);
-        if (!res) return res.GetError();
-        const auto& txr = res.GetObj();
+        if (!res) return {util::Error{}, std::move(res)};
+        const auto& txr = *res;
         fee = txr.fee;
         change_pos = txr.change_pos;
 
