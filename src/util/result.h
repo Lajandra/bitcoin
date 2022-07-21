@@ -231,26 +231,4 @@ template<typename T, typename F>
 bilingual_str ErrorString(const Result<T, F>& result) { return ErrorString(result.GetErrors(), result.GetWarnings()); }
 } // namespace util
 
-/**
- * Backwards-compatible interface for util::Result class. New code should prefer
- * util::Result class which supports returning error information along with
- * result information and supports returing `void` and `bilingual_str` results.
-*/
-template<class T>
-class BResult {
-private:
-    util::Result<T> m_result;
-
-public:
-    BResult() : m_result{util::Error{}, Untranslated("")} {};
-    BResult(const T& value) : m_result{value} {}
-    BResult(T&& value) : m_result{std::move(value)} {}
-    BResult(const bilingual_str& error) : m_result{util::Error{}, error} {}
-    bool HasRes() const { return m_result.has_value(); }
-    const T& GetObj() const { return m_result.value(); }
-    T ReleaseObj() { return std::move(m_result.value()); }
-    const bilingual_str& GetError() const { assert(!HasRes()); return m_result.GetErrors().back(); }
-    explicit operator bool() const { return HasRes(); }
-};
-
 #endif // BITCOIN_UTIL_RESULT_H

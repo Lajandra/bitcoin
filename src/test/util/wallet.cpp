@@ -21,9 +21,9 @@ std::string getnewaddress(CWallet& w)
 {
     constexpr auto output_type = OutputType::BECH32;
     auto op_dest = w.GetNewDestination(output_type, "");
-    assert(op_dest.HasRes());
+    assert(op_dest);
 
-    return EncodeDestination(op_dest.GetObj());
+    return EncodeDestination(*op_dest);
 }
 
 #endif // ENABLE_WALLET
