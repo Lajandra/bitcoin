@@ -218,11 +218,27 @@ void TestingSetup::LoadVerifyActivateChainstate()
     options.prune = chainman.m_blockman.IsPruneMode();
     options.check_blocks = m_args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS);
     options.check_level = m_args.GetIntArg("-checklevel", DEFAULT_CHECKLEVEL);
+<<<<<<< HEAD
     auto [status, error] = LoadChainstate(chainman, m_cache_sizes, options);
     assert(status == node::ChainstateLoadStatus::SUCCESS);
+||||||| parent of f9778907bfd (refactor: Use util::Result class in LoadChainstate and VerifyLoadedChainstate)
+    auto [status, error] = LoadChainstate(*Assert(m_node.chainman), m_cache_sizes, options);
+    assert(status == node::ChainstateLoadStatus::SUCCESS);
+=======
+    auto result = LoadChainstate(*Assert(m_node.chainman), m_cache_sizes, options);
+    assert(result);
+>>>>>>> f9778907bfd (refactor: Use util::Result class in LoadChainstate and VerifyLoadedChainstate)
 
+<<<<<<< HEAD
     std::tie(status, error) = VerifyLoadedChainstate(chainman, options);
     assert(status == node::ChainstateLoadStatus::SUCCESS);
+||||||| parent of f9778907bfd (refactor: Use util::Result class in LoadChainstate and VerifyLoadedChainstate)
+    std::tie(status, error) = VerifyLoadedChainstate(*Assert(m_node.chainman), options);
+    assert(status == node::ChainstateLoadStatus::SUCCESS);
+=======
+    result = VerifyLoadedChainstate(*Assert(m_node.chainman), options);
+    assert(result);
+>>>>>>> f9778907bfd (refactor: Use util::Result class in LoadChainstate and VerifyLoadedChainstate)
 
     BlockValidationState state;
     if (!chainman.ActiveChainstate().ActivateBestChain(state)) {
