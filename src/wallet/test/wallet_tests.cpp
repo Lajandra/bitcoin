@@ -43,6 +43,47 @@ static_assert(WALLET_INCREMENTAL_RELAY_FEE >= DEFAULT_INCREMENTAL_RELAY_FEE, "wa
 
 BOOST_FIXTURE_TEST_SUITE(wallet_tests, WalletTestingSetup)
 
+<<<<<<< HEAD
+||||||| parent of f7d4451b9801 (refactor: Use util::Result class for wallet loading)
+static std::shared_ptr<CWallet> TestLoadWallet(WalletContext& context)
+{
+    DatabaseOptions options;
+    options.create_flags = WALLET_FLAG_DESCRIPTORS;
+    DatabaseStatus status;
+    bilingual_str error;
+    std::vector<bilingual_str> warnings;
+    auto database = MakeWalletDatabase("", options, status, error);
+    auto wallet = CWallet::Create(context, "", std::move(database), options.create_flags, error, warnings);
+    NotifyWalletLoaded(context, wallet);
+    return wallet;
+}
+
+static void TestUnloadWallet(std::shared_ptr<CWallet>&& wallet)
+{
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
+}
+
+=======
+static std::shared_ptr<CWallet> TestLoadWallet(WalletContext& context)
+{
+    DatabaseOptions options;
+    options.create_flags = WALLET_FLAG_DESCRIPTORS;
+    auto database = MakeWalletDatabase("", options);
+    auto wallet = CWallet::Create(context, "", std::move(*database), options.create_flags);
+    NotifyWalletLoaded(context, *wallet);
+    return *wallet;
+}
+
+static void TestUnloadWallet(std::shared_ptr<CWallet>&& wallet)
+{
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
+}
+
+>>>>>>> f7d4451b9801 (refactor: Use util::Result class for wallet loading)
 static CMutableTransaction TestSimpleSpend(const CTransaction& from, uint32_t index, const CKey& key, const CScript& pubkey)
 {
     CMutableTransaction mtx;
@@ -413,11 +454,8 @@ void TestLoadWallet(const std::string& name, DatabaseFormat format, std::functio
     auto chain{interfaces::MakeChain(node)};
     DatabaseOptions options;
     options.require_format = format;
-    DatabaseStatus status;
-    bilingual_str error;
-    std::vector<bilingual_str> warnings;
-    auto database{MakeWalletDatabase(name, options, status, error)};
-    auto wallet{std::make_shared<CWallet>(chain.get(), "", std::move(database))};
+    auto database{MakeWalletDatabase(name, options)};
+    auto wallet{std::make_shared<CWallet>(chain.get(), "", std::move(*database))};
     BOOST_CHECK_EQUAL(wallet->LoadWallet(), DBErrors::LOAD_OK);
     WITH_LOCK(wallet->cs_wallet, f(wallet));
 }

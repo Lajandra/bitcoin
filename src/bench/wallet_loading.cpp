@@ -16,7 +16,65 @@
 
 #include <optional>
 
+<<<<<<< HEAD
 namespace wallet{
+||||||| parent of f7d4451b9801 (refactor: Use util::Result class for wallet loading)
+using wallet::CWallet;
+using wallet::DatabaseFormat;
+using wallet::DatabaseOptions;
+using wallet::TxStateInactive;
+using wallet::WALLET_FLAG_DESCRIPTORS;
+using wallet::WalletContext;
+using wallet::WalletDatabase;
+
+static std::shared_ptr<CWallet> BenchLoadWallet(std::unique_ptr<WalletDatabase> database, WalletContext& context, DatabaseOptions& options)
+{
+    bilingual_str error;
+    std::vector<bilingual_str> warnings;
+    auto wallet = CWallet::Create(context, "", std::move(database), options.create_flags, error, warnings);
+    NotifyWalletLoaded(context, wallet);
+    if (context.chain) {
+        wallet->postInitProcess();
+    }
+    return wallet;
+}
+
+static void BenchUnloadWallet(std::shared_ptr<CWallet>&& wallet)
+{
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
+}
+
+=======
+using wallet::CWallet;
+using wallet::DatabaseFormat;
+using wallet::DatabaseOptions;
+using wallet::TxStateInactive;
+using wallet::WALLET_FLAG_DESCRIPTORS;
+using wallet::WalletContext;
+using wallet::WalletDatabase;
+
+static std::shared_ptr<CWallet> BenchLoadWallet(std::unique_ptr<WalletDatabase> database, WalletContext& context, DatabaseOptions& options)
+{
+    bilingual_str error;
+    std::vector<bilingual_str> warnings;
+    auto wallet = CWallet::Create(context, "", std::move(database), options.create_flags);
+    NotifyWalletLoaded(context, *wallet);
+    if (context.chain) {
+        (*wallet)->postInitProcess();
+    }
+    return *wallet;
+}
+
+static void BenchUnloadWallet(std::shared_ptr<CWallet>&& wallet)
+{
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
+}
+
+>>>>>>> f7d4451b9801 (refactor: Use util::Result class for wallet loading)
 static void AddTx(CWallet& wallet)
 {
     CMutableTransaction mtx;
