@@ -5,6 +5,8 @@
 #ifndef BITCOIN_WALLET_RPC_UTIL_H
 #define BITCOIN_WALLET_RPC_UTIL_H
 
+#include <util/result.h>
+
 #include <any>
 #include <memory>
 #include <string>
@@ -17,7 +19,7 @@ struct bilingual_str;
 namespace wallet {
 class CWallet;
 class LegacyScriptPubKeyMan;
-enum class DatabaseStatus;
+enum class DatabaseError;
 struct WalletContext;
 
 extern const std::string HELP_REQUIRING_PASSPHRASE;
@@ -40,7 +42,7 @@ bool GetAvoidReuseFlag(const CWallet& wallet, const UniValue& param);
 bool ParseIncludeWatchonly(const UniValue& include_watchonly, const CWallet& wallet);
 std::string LabelFromValue(const UniValue& value);
 
-void HandleWalletError(const std::shared_ptr<CWallet> wallet, DatabaseStatus& status, bilingual_str& error);
+void HandleWalletError(const util::Result<std::shared_ptr<CWallet>, DatabaseError>& wallet);
 } //  namespace wallet
 
 #endif // BITCOIN_WALLET_RPC_UTIL_H
