@@ -6,6 +6,7 @@
 #define BITCOIN_WALLET_RPC_UTIL_H
 
 #include <script/script.h>
+#include <util/result.h>
 
 #include <any>
 #include <memory>
@@ -19,7 +20,7 @@ struct bilingual_str;
 namespace wallet {
 class CWallet;
 class LegacyScriptPubKeyMan;
-enum class DatabaseStatus;
+enum class DatabaseError;
 struct WalletContext;
 
 extern const std::string HELP_REQUIRING_PASSPHRASE;
@@ -44,9 +45,15 @@ std::string LabelFromValue(const UniValue& value);
 //! Fetch parent descriptors of this scriptPubKey.
 void PushParentDescriptors(const CWallet& wallet, const CScript& script_pubkey, UniValue& entry);
 
+<<<<<<< HEAD
 void HandleWalletError(const std::shared_ptr<CWallet> wallet, DatabaseStatus& status, bilingual_str& error);
 
 int64_t ParseISO8601DateTime(const std::string& str);
+||||||| parent of f718aec8db4 (refactor: Use util::Result class for wallet loading)
+void HandleWalletError(const std::shared_ptr<CWallet> wallet, DatabaseStatus& status, bilingual_str& error);
+=======
+void HandleWalletError(const util::Result<std::shared_ptr<CWallet>, DatabaseError>& wallet);
+>>>>>>> f718aec8db4 (refactor: Use util::Result class for wallet loading)
 } //  namespace wallet
 
 #endif // BITCOIN_WALLET_RPC_UTIL_H
