@@ -47,13 +47,11 @@ struct FuzzedWallet {
         const std::optional<bool> load_on_start;
         gArgs.ForceSetArg("-keypool", "0"); // Avoid timeout in TopUp()
 
-        DatabaseStatus status;
-        bilingual_str error;
-        std::vector<bilingual_str> warnings;
-        wallet = CreateWallet(context, name, load_on_start, options, status, error, warnings);
-        assert(wallet);
-        assert(error.empty());
-        assert(warnings.empty());
+        auto created = CreateWallet(context, name, load_on_start, options);
+        assert(created && *created);
+        assert(created.GetErrors().empty());
+        assert(created.GetWarnings().empty());
+        wallet = *created;
         assert(wallet->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
     }
     ~FuzzedWallet()
@@ -61,8 +59,7 @@ struct FuzzedWallet {
         const auto name{wallet->GetName()};
         std::vector<bilingual_str> warnings;
         std::optional<bool> load_on_start;
-        assert(RemoveWallet(context, wallet, load_on_start, warnings));
-        assert(warnings.empty());
+        assert(RemoveWallet(context, wallet, load_on_start));
         UnloadWallet(std::move(wallet));
         fs::remove_all(GetWalletDir() / fs::PathFromString(name));
     }
