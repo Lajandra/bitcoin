@@ -552,32 +552,51 @@ public:
     void setMockTime(int64_t time) override { return SetMockTime(time); }
 
     //! WalletLoader methods
-    std::unique_ptr<Wallet> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags, bilingual_str& error, std::vector<bilingual_str>& warnings) override
+    util::Result<std::unique_ptr<Wallet>> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags) override
     {
-        std::shared_ptr<CWallet> wallet;
         DatabaseOptions options;
-        DatabaseStatus status;
         ReadDatabaseArgs(*m_context.args, options);
         options.require_create = true;
         options.create_flags = wallet_creation_flags;
         options.create_passphrase = passphrase;
-        return MakeWallet(m_context, CreateWallet(m_context, name, true /* load_on_start */, options, status, error, warnings));
+        auto wallet = CreateWallet(m_context, name, true /* load_on_start */, options);
+        if (!wallet) return {util::Error{}, std::move(wallet)};
+        return {std::move(wallet), MakeWallet(m_context, *wallet)};
     }
-    std::unique_ptr<Wallet> loadWallet(const std::string& name, bilingual_str& error, std::vector<bilingual_str>& warnings) override
+    util::Result<std::unique_ptr<Wallet>> loadWallet(const std::string& name) override
     {
         DatabaseOptions options;
-        DatabaseStatus status;
         ReadDatabaseArgs(*m_context.args, options);
         options.require_existing = true;
-        return MakeWallet(m_context, LoadWallet(m_context, name, true /* load_on_start */, options, status, error, warnings));
+        auto wallet = LoadWallet(m_context, name, true /* load_on_start */, options);
+        if (!wallet) return {util::Error{}, std::move(wallet)};
+        return {std::move(wallet), MakeWallet(m_context, *wallet)};
     }
+<<<<<<< HEAD
     util::Result<std::unique_ptr<Wallet>> restoreWallet(const fs::path& backup_file, const std::string& wallet_name, std::vector<bilingual_str>& warnings) override
+||||||| parent of bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
+    BResult<std::unique_ptr<Wallet>> restoreWallet(const fs::path& backup_file, const std::string& wallet_name, std::vector<bilingual_str>& warnings) override
+=======
+    util::Result<std::unique_ptr<Wallet>> restoreWallet(const fs::path& backup_file, const std::string& wallet_name) override
+>>>>>>> bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
     {
+<<<<<<< HEAD
         DatabaseStatus status;
         bilingual_str error;
         util::Result<std::unique_ptr<Wallet>> wallet{MakeWallet(m_context, RestoreWallet(m_context, backup_file, wallet_name, /*load_on_start=*/true, status, error, warnings))};
         if (!wallet) return util::Error{error};
         return wallet;
+||||||| parent of bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
+        DatabaseStatus status;
+        bilingual_str error;
+        BResult<std::unique_ptr<Wallet>> wallet{MakeWallet(m_context, RestoreWallet(m_context, backup_file, wallet_name, /*load_on_start=*/true, status, error, warnings))};
+        if (!wallet) return error;
+        return wallet;
+=======
+        auto wallet = RestoreWallet(m_context, backup_file, wallet_name, /*load_on_start=*/true);
+        if (!wallet) return {util::Error{}};
+        return {std::move(wallet), MakeWallet(m_context, *wallet)};
+>>>>>>> bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
     }
     std::string getWalletDir() override
     {

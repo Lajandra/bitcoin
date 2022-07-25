@@ -320,16 +320,22 @@ class WalletLoader : public ChainClient
 {
 public:
     //! Create new wallet.
-    virtual std::unique_ptr<Wallet> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags, bilingual_str& error, std::vector<bilingual_str>& warnings) = 0;
+    virtual util::Result<std::unique_ptr<Wallet>> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags) = 0;
 
    //! Load existing wallet.
-   virtual std::unique_ptr<Wallet> loadWallet(const std::string& name, bilingual_str& error, std::vector<bilingual_str>& warnings) = 0;
+   virtual util::Result<std::unique_ptr<Wallet>> loadWallet(const std::string& name) = 0;
 
    //! Return default wallet directory.
    virtual std::string getWalletDir() = 0;
 
    //! Restore backup wallet
+<<<<<<< HEAD
    virtual util::Result<std::unique_ptr<Wallet>> restoreWallet(const fs::path& backup_file, const std::string& wallet_name, std::vector<bilingual_str>& warnings) = 0;
+||||||| parent of bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
+   virtual BResult<std::unique_ptr<Wallet>> restoreWallet(const fs::path& backup_file, const std::string& wallet_name, std::vector<bilingual_str>& warnings) = 0;
+=======
+   virtual util::Result<std::unique_ptr<Wallet>> restoreWallet(const fs::path& backup_file, const std::string& wallet_name) = 0;
+>>>>>>> bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
 
    //! Return available wallets in wallet directory.
    virtual std::vector<std::string> listWalletDir() = 0;

@@ -262,9 +262,11 @@ void CreateWalletActivity::createWallet()
     }
 
     QTimer::singleShot(500ms, worker(), [this, name, flags] {
-        std::unique_ptr<interfaces::Wallet> wallet = node().walletLoader().createWallet(name, m_passphrase, flags, m_error_message, m_warning_message);
+        auto wallet = node().walletLoader().createWallet(name, m_passphrase, flags);
+        m_error_message = util::ErrorString(wallet.GetErrors());
+        m_warning_message = wallet.GetWarnings();
 
-        if (wallet) m_wallet_model = m_wallet_controller->getOrCreateWallet(std::move(wallet));
+        if (wallet) m_wallet_model = m_wallet_controller->getOrCreateWallet(std::move(*wallet));
 
         QTimer::singleShot(500ms, this, &CreateWalletActivity::finish);
     });
@@ -343,9 +345,11 @@ void OpenWalletActivity::open(const std::string& path)
         tr("Opening Wallet <b>%1</b>…").arg(name.toHtmlEscaped()));
 
     QTimer::singleShot(0, worker(), [this, path] {
-        std::unique_ptr<interfaces::Wallet> wallet = node().walletLoader().loadWallet(path, m_error_message, m_warning_message);
+        auto wallet = node().walletLoader().loadWallet(path);
+        m_error_message = util::ErrorString(wallet.GetErrors());
+        m_warning_message = wallet.GetWarnings();
 
-        if (wallet) m_wallet_model = m_wallet_controller->getOrCreateWallet(std::move(wallet));
+        if (wallet) m_wallet_model = m_wallet_controller->getOrCreateWallet(std::move(*wallet));
 
         QTimer::singleShot(0, this, &OpenWalletActivity::finish);
     });
@@ -391,10 +395,19 @@ void RestoreWalletActivity::restore(const fs::path& backup_file, const std::stri
         tr("Restoring Wallet <b>%1</b>…").arg(name.toHtmlEscaped()));
 
     QTimer::singleShot(0, worker(), [this, backup_file, wallet_name] {
-        auto wallet{node().walletLoader().restoreWallet(backup_file, wallet_name, m_warning_message)};
+        auto wallet{node().walletLoader().restoreWallet(backup_file, wallet_name)};
+        m_error_message = util::ErrorString(wallet.GetErrors());
+        m_warning_message = wallet.GetWarnings();
 
+<<<<<<< HEAD
         m_error_message = util::ErrorString(wallet);
         if (wallet) m_wallet_model = m_wallet_controller->getOrCreateWallet(std::move(*wallet));
+||||||| parent of bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
+        m_error_message = wallet ? bilingual_str{} : wallet.GetError();
+        if (wallet) m_wallet_model = m_wallet_controller->getOrCreateWallet(wallet.ReleaseObj());
+=======
+        if (wallet) m_wallet_model = m_wallet_controller->getOrCreateWallet(std::move(*wallet));
+>>>>>>> bc4172e1cb8 (refactor: Use util::Result class for wallet loading)
 
         QTimer::singleShot(0, this, &RestoreWalletActivity::finish);
     });
