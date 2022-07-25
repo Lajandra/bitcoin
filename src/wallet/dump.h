@@ -5,7 +5,14 @@
 #ifndef BITCOIN_WALLET_DUMP_H
 #define BITCOIN_WALLET_DUMP_H
 
+<<<<<<< HEAD
 #include <util/fs.h>
+||||||| parent of 5c1be5339b0 (refactor: Use util::Result class for wallet loading)
+#include <fs.h>
+=======
+#include <fs.h>
+#include <util/result.h>
+>>>>>>> 5c1be5339b0 (refactor: Use util::Result class for wallet loading)
 
 #include <string>
 #include <vector>
@@ -15,8 +22,8 @@ class ArgsManager;
 
 namespace wallet {
 class CWallet;
-bool DumpWallet(const ArgsManager& args, CWallet& wallet, bilingual_str& error);
-bool CreateFromDump(const ArgsManager& args, const std::string& name, const fs::path& wallet_path, bilingual_str& error, std::vector<bilingual_str>& warnings);
+util::Result<void> DumpWallet(const ArgsManager& args, CWallet& wallet);
+util::Result<void> CreateFromDump(const ArgsManager& args, const std::string& name, const fs::path& wallet_path);
 } // namespace wallet
 
 #endif // BITCOIN_WALLET_DUMP_H
