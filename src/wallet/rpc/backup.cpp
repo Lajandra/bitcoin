@@ -1927,20 +1927,24 @@ RPCHelpMan restorewallet()
 
     std::optional<bool> load_on_start = request.params[2].isNull() ? std::nullopt : std::optional<bool>(request.params[2].get_bool());
 
-    DatabaseStatus status;
-    bilingual_str error;
-    std::vector<bilingual_str> warnings;
+    auto wallet = RestoreWallet(context, backup_file, wallet_name, load_on_start);
 
-    const std::shared_ptr<CWallet> wallet = RestoreWallet(context, backup_file, wallet_name, load_on_start, status, error, warnings);
-
-    HandleWalletError(wallet, status, error);
+    HandleWalletError(wallet);
 
     UniValue obj(UniValue::VOBJ);
+<<<<<<< HEAD
     obj.pushKV("name", wallet->GetName());
     if (wallet->chain().rpcEnableDeprecated("walletwarningfield")) {
         obj.pushKV("warning", Join(warnings, Untranslated("\n")).original);
     }
     PushWarnings(warnings, obj);
+||||||| parent of 9c2817208cd (refactor: Use util::Result class for wallet loading)
+    obj.pushKV("name", wallet->GetName());
+    obj.pushKV("warning", Join(warnings, Untranslated("\n")).original);
+=======
+    obj.pushKV("name", (*wallet)->GetName());
+    obj.pushKV("warning", Join(wallet.GetWarnings(), Untranslated("\n")).original);
+>>>>>>> 9c2817208cd (refactor: Use util::Result class for wallet loading)
 
     return obj;
 
