@@ -49,16 +49,14 @@ static void WalletCreate(CWallet* wallet_instance, uint64_t wallet_creation_flag
 
 static const std::shared_ptr<CWallet> MakeWallet(const std::string& name, const fs::path& path, const ArgsManager& args, DatabaseOptions options)
 {
-    DatabaseStatus status;
-    bilingual_str error;
-    std::unique_ptr<WalletDatabase> database = MakeDatabase(path, options, status, error);
+    auto database = MakeDatabase(path, options);
     if (!database) {
-        tfm::format(std::cerr, "%s\n", error.original);
+        tfm::format(std::cerr, "%s\n", util::ErrorString(database).original);
         return nullptr;
     }
 
     // dummy chain interface
-    std::shared_ptr<CWallet> wallet_instance{new CWallet(nullptr /* chain */, name, args, std::move(database)), WalletToolReleaseWallet};
+    std::shared_ptr<CWallet> wallet_instance{new CWallet(nullptr /* chain */, name, args, std::move(*database)), WalletToolReleaseWallet};
     DBErrors load_wallet_ret;
     try {
         load_wallet_ret = wallet_instance->LoadWallet();
@@ -174,14 +172,12 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
         wallet_instance->Close();
     } else if (command == "salvage") {
 #ifdef USE_BDB
-        bilingual_str error;
-        std::vector<bilingual_str> warnings;
-        bool ret = RecoverDatabaseFile(args, path, error, warnings);
+        auto ret = RecoverDatabaseFile(args, path);
         if (!ret) {
-            for (const auto& warning : warnings) {
+            for (const auto& warning : ret.GetWarnings()) {
                 tfm::format(std::cerr, "%s\n", warning.original);
             }
-            if (!error.empty()) {
+            for (const auto& error : ret.GetErrors()) {
                 tfm::format(std::cerr, "%s\n", error.original);
             }
         }
@@ -194,24 +190,21 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
         DatabaseOptions options;
         ReadDatabaseArgs(args, options);
         options.require_existing = true;
-        const std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, args, options);
+        auto wallet_instance = MakeWallet(name, path, args, options);
         if (!wallet_instance) return false;
-        bilingual_str error;
-        bool ret = DumpWallet(args, *wallet_instance, error);
-        if (!ret && !error.empty()) {
-            tfm::format(std::cerr, "%s\n", error.original);
-            return ret;
+        auto ret = DumpWallet(args, *wallet_instance);
+        if (!ret) {
+            tfm::format(std::cerr, "%s\n", util::ErrorString(ret).original);
+            return false;
         }
         tfm::format(std::cout, "The dumpfile may contain private keys. To ensure the safety of your Bitcoin, do not share the dumpfile.\n");
         return ret;
     } else if (command == "createfromdump") {
-        bilingual_str error;
-        std::vector<bilingual_str> warnings;
-        bool ret = CreateFromDump(args, name, path, error, warnings);
-        for (const auto& warning : warnings) {
+        auto ret = CreateFromDump(args, name, path);
+        for (const auto& warning : ret.GetWarnings()) {
             tfm::format(std::cout, "%s\n", warning.original);
         }
-        if (!ret && !error.empty()) {
+        for (const auto& error : ret.GetErrors()) {
             tfm::format(std::cerr, "%s\n", error.original);
         }
         return ret;
