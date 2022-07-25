@@ -73,7 +73,7 @@ public:
 
     ~SQLiteDatabase();
 
-    bool Verify(bilingual_str& error);
+    util::Result<void> Verify();
 
     /** Open the database if it is not already opened */
     void Open() override;
@@ -116,7 +116,7 @@ public:
     bool m_use_unsafe_sync;
 };
 
-std::unique_ptr<SQLiteDatabase> MakeSQLiteDatabase(const fs::path& path, const DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error);
+util::Result<std::unique_ptr<SQLiteDatabase>, DatabaseError> MakeSQLiteDatabase(const fs::path& path, const DatabaseOptions& options);
 
 std::string SQLiteDatabaseVersion();
 } // namespace wallet
