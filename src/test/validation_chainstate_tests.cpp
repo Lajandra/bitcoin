@@ -22,7 +22,28 @@ BOOST_FIXTURE_TEST_SUITE(validation_chainstate_tests, ChainTestingSetup)
 //!
 BOOST_AUTO_TEST_CASE(validation_chainstate_resize_caches)
 {
+<<<<<<< HEAD
     ChainstateManager& manager = *Assert(m_node.chainman);
+||||||| parent of ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
+    const ChainstateManager::Options chainman_opts{
+        .chainparams = Params(),
+        .adjusted_time_callback = GetAdjustedTime,
+    };
+    ChainstateManager manager{chainman_opts};
+
+    WITH_LOCK(::cs_main, manager.m_blockman.m_block_tree_db = std::make_unique<CBlockTreeDB>(1 << 20, true));
+=======
+    const ChainstateManager::Options chainman_opts{
+        .chainparams = Params(),
+        .adjusted_time_callback = GetAdjustedTime,
+    };
+    ChainstateManager manager{chainman_opts};
+
+    WITH_LOCK(::cs_main, manager.m_blockman.m_block_tree_db = std::make_unique<CBlockTreeDB>(DBParams{
+        .path{m_args.GetDataDirNet() / "blocks" / "index"},
+        .cache_bytes = 1 << 20,
+        .memory_only = true}));
+>>>>>>> ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
     CTxMemPool& mempool = *Assert(m_node.mempool);
 
     //! Create and add a Coin with DynamicMemoryUsage of 80 bytes to the given view.

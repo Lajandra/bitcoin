@@ -197,11 +197,22 @@ BITCOIN_CORE_H = \
   node/caches.h \
   node/chainstate.h \
   node/coin.h \
+<<<<<<< HEAD
   node/connection_types.h \
+||||||| parent of ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
+=======
+  node/coins_view_args.h \
+>>>>>>> ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
   node/context.h \
+<<<<<<< HEAD
   node/eviction.h \
   node/interface_ui.h \
   node/mempool_args.h \
+||||||| parent of ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
+=======
+  node/database_args.h \
+  node/interface_ui.h \
+>>>>>>> ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
   node/mempool_persist_args.h \
   node/miner.h \
   node/minisketchwrapper.h \
@@ -381,8 +392,10 @@ libbitcoin_node_a_SOURCES = \
   node/caches.cpp \
   node/chainstate.cpp \
   node/coin.cpp \
+  node/coins_view_args.cpp \
   node/connection_types.cpp \
   node/context.cpp \
+  node/database_args.cpp \
   node/eviction.cpp \
   node/interface_ui.cpp \
   node/interfaces.cpp \

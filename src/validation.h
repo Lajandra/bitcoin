@@ -399,7 +399,7 @@ public:
     //! state to disk, which should not be done until the health of the database is verified.
     //!
     //! All arguments forwarded onto CCoinsViewDB.
-    CoinsViews(fs::path ldb_name, size_t cache_size_bytes, bool in_memory, bool should_wipe);
+    CoinsViews(DBParams db_params, CoinsViewOptions options);
 
     //! Initialize the CCoinsViewCache member.
     void InitCache() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
@@ -838,10 +838,6 @@ private:
 
     CBlockIndex* m_best_invalid GUARDED_BY(::cs_main){nullptr};
 
-    const CChainParams m_chainparams;
-
-    const std::function<int64_t()> m_adjusted_time_callback;
-
     //! Internal helper for ActivateSnapshot().
     [[nodiscard]] bool PopulateAndValidateSnapshot(
         CChainState& snapshot_chainstate,
@@ -861,13 +857,15 @@ private:
 public:
     using Options = kernel::ChainstateManagerOpts;
 
-    explicit ChainstateManager(const Options& opts)
-        : m_chainparams{opts.chainparams},
-          m_adjusted_time_callback{Assert(opts.adjusted_time_callback)} {};
+    explicit ChainstateManager(Options options) : m_options{std::move(options)}
+    {
+        Assert(m_options.adjusted_time_callback);
+    }
 
-    const CChainParams& GetParams() const { return m_chainparams; }
-    const Consensus::Params& GetConsensus() const { return m_chainparams.GetConsensus(); }
+    const CChainParams& GetParams() const { return m_options.chainparams; }
+    const Consensus::Params& GetConsensus() const { return m_options.chainparams.GetConsensus(); }
 
+<<<<<<< HEAD
     /**
      * Alias for ::cs_main.
      * Should be used in new code to make it easier to make ::cs_main a member
@@ -881,6 +879,10 @@ public:
      */
     RecursiveMutex& GetMutex() const LOCK_RETURNED(::cs_main) { return ::cs_main; }
 
+||||||| parent of ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
+=======
+    Options m_options;
+>>>>>>> ba91ffa1ce0 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
     std::thread m_load_block;
     //! A single BlockManager instance is shared across each constructed
     //! chainstate to avoid duplicating block metadata.
