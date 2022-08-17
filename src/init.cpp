@@ -40,7 +40,9 @@
 #include <node/blockstorage.h>
 #include <node/caches.h>
 #include <node/chainstate.h>
+#include <node/coins_view_args.h>
 #include <node/context.h>
+#include <node/database_args.h>
 #include <node/interface_ui.h>
 #include <node/mempool_args.h>
 #include <node/mempool_persist_args.h>
@@ -1469,10 +1471,14 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     for (bool fLoaded = false; !fLoaded && !ShutdownRequested();) {
         node.mempool = std::make_unique<CTxMemPool>(mempool_opts);
 
-        const ChainstateManager::Options chainman_opts{
+        ChainstateManager::Options chainman_opts{
             .chainparams = chainparams,
             .adjusted_time_callback = GetAdjustedTime,
+            .datadir = args.GetDataDirNet(),
         };
+        node::ReadDatabaseArgs(args, chainman_opts.block_tree_db);
+        node::ReadDatabaseArgs(args, chainman_opts.coins_db);
+        node::ReadCoinsViewArgs(args, chainman_opts.coins_view);
         node.chainman = std::make_unique<ChainstateManager>(chainman_opts);
         ChainstateManager& chainman = *node.chainman;
 
