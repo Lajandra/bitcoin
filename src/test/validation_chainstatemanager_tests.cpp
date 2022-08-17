@@ -375,6 +375,7 @@ struct SnapshotTestSetup : TestChain100Setup {
             const ChainstateManager::Options chainman_opts{
                 .chainparams = ::Params(),
                 .adjusted_time_callback = GetAdjustedTime,
+                .datadir = m_args.GetDataDirNet(),
             };
             // For robustness, ensure the old manager is destroyed before creating a
             // new one.
