@@ -83,6 +83,7 @@ int main(int argc, char* argv[])
     const ChainstateManager::Options chainman_opts{
         .chainparams = chainparams,
         .adjusted_time_callback = static_cast<int64_t (*)()>(GetTime),
+        .datadir = abs_datadir,
     };
     ChainstateManager chainman{chainman_opts};
 
