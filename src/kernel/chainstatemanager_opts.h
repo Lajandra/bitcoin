@@ -5,6 +5,8 @@
 #ifndef BITCOIN_KERNEL_CHAINSTATEMANAGER_OPTS_H
 #define BITCOIN_KERNEL_CHAINSTATEMANAGER_OPTS_H
 
+#include <dbwrapper.h>
+#include <txdb.h>
 #include <util/time.h>
 
 #include <cstdint>
@@ -22,6 +24,10 @@ namespace kernel {
 struct ChainstateManagerOpts {
     const CChainParams& chainparams;
     const std::function<NodeClock::time_point()> adjusted_time_callback{nullptr};
+    fs::path datadir;
+    DBOptions block_tree_db;
+    DBOptions coins_db;
+    CoinsViewOptions coins_view;
 };
 
 } // namespace kernel
