@@ -180,7 +180,12 @@ ChainTestingSetup::ChainTestingSetup(const std::string& chainName, const std::ve
     const ChainstateManager::Options chainman_opts{
         .chainparams = chainparams,
         .adjusted_time_callback = GetAdjustedTime,
+<<<<<<< HEAD
         .check_block_index = true,
+||||||| parent of ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
+=======
+        .datadir = m_args.GetDataDirNet(),
+>>>>>>> ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
     };
     m_node.chainman = std::make_unique<ChainstateManager>(chainman_opts);
     m_node.chainman->m_blockman.m_block_tree_db = std::make_unique<CBlockTreeDB>(DBParams{

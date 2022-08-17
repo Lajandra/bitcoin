@@ -5,8 +5,14 @@
 #ifndef BITCOIN_KERNEL_CHAINSTATEMANAGER_OPTS_H
 #define BITCOIN_KERNEL_CHAINSTATEMANAGER_OPTS_H
 
+<<<<<<< HEAD
 #include <arith_uint256.h>
 #include <uint256.h>
+||||||| parent of ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
+=======
+#include <dbwrapper.h>
+#include <txdb.h>
+>>>>>>> ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
 #include <util/time.h>
 
 #include <cstdint>
@@ -28,6 +34,7 @@ namespace kernel {
 struct ChainstateManagerOpts {
     const CChainParams& chainparams;
     const std::function<NodeClock::time_point()> adjusted_time_callback{nullptr};
+<<<<<<< HEAD
     std::optional<bool> check_block_index{};
     bool checkpoints_enabled{DEFAULT_CHECKPOINTS_ENABLED};
     //! If set, it will override the minimum work we will assume exists on some valid chain.
@@ -36,6 +43,13 @@ struct ChainstateManagerOpts {
     std::optional<uint256> assumed_valid_block;
     //! If the tip is older than this, the node is considered to be in initial block download.
     std::chrono::seconds max_tip_age{DEFAULT_MAX_TIP_AGE};
+||||||| parent of ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
+=======
+    fs::path datadir;
+    DBOptions block_tree_db{};
+    DBOptions coins_db{};
+    CoinsViewOptions coins_view{};
+>>>>>>> ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
 };
 
 } // namespace kernel

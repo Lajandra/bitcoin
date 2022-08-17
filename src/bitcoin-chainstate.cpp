@@ -83,6 +83,7 @@ int main(int argc, char* argv[])
     const ChainstateManager::Options chainman_opts{
         .chainparams = chainparams,
         .adjusted_time_callback = NodeClock::now,
+        .datadir = gArgs.GetDataDirNet(),
     };
     ChainstateManager chainman{chainman_opts};
 

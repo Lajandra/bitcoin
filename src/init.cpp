@@ -1431,11 +1431,21 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     fReindex = args.GetBoolArg("-reindex", false);
     bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
+<<<<<<< HEAD
     ChainstateManager::Options chainman_opts{
         .chainparams = chainparams,
         .adjusted_time_callback = GetAdjustedTime,
     };
     Assert(!ApplyArgsManOptions(args, chainman_opts)); // no error can happen, already checked in AppInitParameterInteraction
+||||||| parent of ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
+=======
+    ChainstateManager::Options chainman_opts{
+        .chainparams = chainparams,
+        .adjusted_time_callback = GetAdjustedTime,
+        .datadir = args.GetDataDirNet(),
+    };
+    node::ReadChainstateManagerArgs(args, chainman_opts);
+>>>>>>> ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
 
     // cache size calculations
     CacheSizes cache_sizes = CalculateCacheSizes(args, g_enabled_filter_types.size());
@@ -1471,7 +1481,16 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     for (bool fLoaded = false; !fLoaded && !ShutdownRequested();) {
         node.mempool = std::make_unique<CTxMemPool>(mempool_opts);
+<<<<<<< HEAD
 
+||||||| parent of ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
+
+        const ChainstateManager::Options chainman_opts{
+            .chainparams = chainparams,
+            .adjusted_time_callback = GetAdjustedTime,
+        };
+=======
+>>>>>>> ee6058f7a0e (refactor, validation: Add ChainstateManagerOpts db options)
         node.chainman = std::make_unique<ChainstateManager>(chainman_opts);
         ChainstateManager& chainman = *node.chainman;
 
