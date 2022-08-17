@@ -82,7 +82,14 @@ int main(int argc, char* argv[])
     // SETUP: Chainstate
     const ChainstateManager::Options chainman_opts{
         .chainparams = chainparams,
+<<<<<<< HEAD
         .adjusted_time_callback = NodeClock::now,
+||||||| parent of 370189fe960 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
+        .adjusted_time_callback = static_cast<int64_t (*)()>(GetTime),
+=======
+        .adjusted_time_callback = static_cast<int64_t (*)()>(GetTime),
+        .datadir = abs_datadir,
+>>>>>>> 370189fe960 (refactor, kernel: Remove gArgs accesses from dbwrapper and txdb)
     };
     ChainstateManager chainman{chainman_opts};
 
