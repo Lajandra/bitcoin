@@ -878,7 +878,12 @@ public:
      */
     RecursiveMutex& GetMutex() const LOCK_RETURNED(::cs_main) { return ::cs_main; }
 
+<<<<<<< HEAD
     const Options m_options;
+||||||| parent of 6db2c00adbe (refactor: Move ChainstateManager options into m_options struct)
+=======
+    Options m_options;
+>>>>>>> 6db2c00adbe (refactor: Move ChainstateManager options into m_options struct)
     std::thread m_load_block;
     //! A single BlockManager instance is shared across each constructed
     //! chainstate to avoid duplicating block metadata.
