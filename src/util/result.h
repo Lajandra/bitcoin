@@ -8,16 +8,146 @@
 #include <attributes.h>
 #include <util/translation.h>
 
+#include <memory>
+#include <optional>
+#include <tuple>
+#include <utility>
 #include <variant>
+#include <vector>
 
 namespace util {
+namespace detail {
+//! Empty string list
+const std::vector<bilingual_str> EMPTY_LIST{};
 
+//! Helper function to join messages in space separated string.
+bilingual_str JoinMessages(const std::vector<bilingual_str>& errors, const std::vector<bilingual_str>& warnings);
+
+//! Helper function to move messages from one vector to another.
+void MoveMessages(std::vector<bilingual_str>& src, std::vector<bilingual_str>& dest);
+
+//! Error information only allocated if there are errors or warnings.
+template <typename F>
+struct ErrorInfo {
+    std::optional<std::conditional_t<std::is_same_v<F, void>, std::monostate, F>> failure{};
+    std::vector<bilingual_str> errors{};
+    std::vector<bilingual_str> warnings{};
+};
+
+//! Result base class which is inherited by Result<T, F>.
+//! T is the type of the success return value, or void if there is none.
+//! F is the type of the failure return value, or void if there is none.
+template <typename T, typename F>
+class ResultBase;
+
+//! Result base specialization for empty (T=void) value type. Holds error
+//! information and provides accessor methods.
+template <typename F>
+class ResultBase<void, F>
+{
+protected:
+    std::unique_ptr<ErrorInfo<F>> m_info;
+
+    ErrorInfo<F>& Info() LIFETIMEBOUND
+    {
+        if (!m_info) m_info = std::make_unique<ErrorInfo<F>>();
+        return *m_info;
+    }
+
+    //! Value accessors that do nothing this because class has value type T=void.
+    void ConstructValue() {}
+    template <typename O>
+    void MoveValue(O& other) {}
+    void DestroyValue() {}
+
+    template <typename, typename>
+    friend class ResultBase;
+
+public:
+    void AddError(bilingual_str error)
+    {
+        if (!error.empty()) Info().errors.emplace_back(std::move(error));
+    }
+
+    void AddWarning(bilingual_str warning)
+    {
+        if (!warning.empty()) Info().warnings.emplace_back(std::move(warning));
+    }
+
+    //! Operator moving warning and error messages from other result to this.
+    //! Only moves message strings, does not change success or failure values of
+    //! either Result object.
+    template<typename O>
+    O&& operator<<(O&& other LIFETIMEBOUND)
+    {
+        if (other.m_info) {
+            if (!other.m_info->errors.empty()) MoveMessages(other.m_info->errors, Info().errors);
+            if (!other.m_info->warnings.empty()) MoveMessages(other.m_info->warnings, Info().warnings);
+        }
+        return std::forward<O>(other);
+    }
+
+    //! Success check.
+    explicit operator bool() const { return !m_info || !m_info->failure; }
+
+    //! Error retrieval.
+    template <typename _F = F>
+    std::enable_if_t<!std::is_same_v<_F, void>, const _F&> GetFailure() const LIFETIMEBOUND { assert(!*this); return *m_info->failure; }
+    const std::vector<bilingual_str>& GetErrors() const LIFETIMEBOUND { return m_info ? m_info->errors : EMPTY_LIST; }
+    const std::vector<bilingual_str>& GetWarnings() const LIFETIMEBOUND { return m_info ? m_info->warnings : EMPTY_LIST; }
+};
+
+//! Result base class for T value type. Holds value and provides accessor methods.
+template <typename T, typename F>
+class ResultBase : public ResultBase<void, F>
+{
+protected:
+    //! Result success value. Uses anonymous union so success value is never
+    //! constructed in failure case.
+    union { T m_value; };
+
+    template <typename... Args>
+    void ConstructValue(Args&&... args) { new (&m_value) T{std::forward<Args>(args)...}; }
+    template <typename O>
+    void MoveValue(O& other) { new (&m_value) T{std::move(other.m_value)}; }
+    void DestroyValue() { m_value.~T(); }
+
+    ResultBase() {}
+    ~ResultBase() {}
+
+public:
+    //! std::optional methods, so functions returning optional<T> can change to
+    //! return Result<T> with minimal changes to existing code, and vice versa.
+    bool has_value() const { return bool{*this}; }
+    const T& value() const LIFETIMEBOUND { assert(*this); return m_value; }
+    T& value() LIFETIMEBOUND { assert(*this); return m_value; }
+    template <class U>
+    T value_or(U&& default_value) const&
+    {
+        return has_value() ? value() : std::forward<U>(default_value);
+    }
+    template <class U>
+    T value_or(U&& default_value) &&
+    {
+        return has_value() ? std::move(value()) : std::forward<U>(default_value);
+    }
+    const T* operator->() const LIFETIMEBOUND { return &value(); }
+    const T& operator*() const LIFETIMEBOUND { return value(); }
+    T* operator->() LIFETIMEBOUND { return &value(); }
+    T& operator*() LIFETIMEBOUND { return value(); }
+};
+} // namespace detail
+
+//! Wrapper types to pass error and warning strings to Result constructors.
 struct Error {
     bilingual_str message;
 };
+struct Warning {
+    bilingual_str message;
+};
 
-//! The util::Result class provides a standard way for functions to return
-//! either error messages or result values.
+//! The util::Result class provides a standard way for functions to return error
+//! and warning strings in addition to optional result values.
 //!
 //! It is intended for high-level functions that need to report error strings to
 //! end users. Lower-level functions that don't need this error-reporting and
@@ -31,54 +161,76 @@ struct Error {
 //! `std::optional<T>` can be updated to return `util::Result<T>` and return
 //! error strings usually just replacing `return std::nullopt;` with `return
 //! util::Error{error_string};`.
-template <class T>
-class Result
+//!
+//! Most code does not need different error-handling behavior for different
+//! types of errors, and can suffice just using the type `T` success value on
+//! success, and descriptive error strings when there's a failure. But
+//! applications that do need more complicated error-handling behavior can
+//! override the default `F = void` failure type and get failure values by
+//! calling result.GetFailure().
+template <typename T, typename F = void>
+class Result : public detail::ResultBase<T, F>
 {
-private:
-    std::variant<bilingual_str, T> m_variant;
+protected:
+    template <typename Fn, typename... Args>
+    void Construct(const Fn& fn, Args&&... args)
+    {
+        fn(std::forward<Args>(args)...);
+    }
 
-    template <typename FT>
-    friend bilingual_str ErrorString(const Result<FT>& result);
+    template <typename Fn, typename... Args>
+    void Construct(const Fn& fn, Error error, Args&&... args)
+    {
+        this->AddError(std::move(error.message));
+        Construct([&](auto&&... x) {
+            this->Info().failure.emplace(std::forward<decltype(x)>(x)...);
+        }, std::forward<Args>(args)...);
+    }
+
+    template <typename Fn, typename... Args>
+    void Construct(const Fn& fn, Warning warning, Args&&... args)
+    {
+        this->AddWarning(std::move(warning.message));
+        Construct(fn, std::forward<Args>(args)...);
+    }
+
+    template <typename Fn, typename OT, typename OF, typename... Args>
+    void Construct(const Fn& fn, Result<OT, OF>&& other, Args&&... args)
+    {
+        *this << other;
+        Construct(fn, std::forward<Args>(args)...);
+    }
+
+    void MoveConstruct(Result& other)
+    {
+        *this << other;
+        if (other) this->MoveValue(other); else this->Info().failure = std::move(other.m_info->failure);
+    }
 
 public:
-    Result(T obj) : m_variant{std::in_place_index_t<1>{}, std::move(obj)} {}
-    Result(Error error) : m_variant{std::in_place_index_t<0>{}, std::move(error.message)} {}
-
-    //! std::optional methods, so functions returning optional<T> can change to
-    //! return Result<T> with minimal changes to existing code, and vice versa.
-    bool has_value() const noexcept { return m_variant.index() == 1; }
-    const T& value() const LIFETIMEBOUND
+    //! Constructors, destructor, and assignment operator.
+    template <typename... Args>
+    Result(Args&&... args)
     {
-        assert(has_value());
-        return std::get<1>(m_variant);
+        Construct([this](auto&&... x) { this->ConstructValue(std::forward<decltype(x)>(x)...); }, std::forward<Args>(args)...);
     }
-    T& value() LIFETIMEBOUND
+    Result(Result&& other) { MoveConstruct(other); }
+    Result& operator=(Result&& other) LIFETIMEBOUND
     {
-        assert(has_value());
-        return std::get<1>(m_variant);
+        if (*this) this->DestroyValue(); else this->m_info->failure.reset();
+        MoveConstruct(other);
+        return *this;
     }
-    template <class U>
-    T value_or(U&& default_value) const&
-    {
-        return has_value() ? value() : std::forward<U>(default_value);
-    }
-    template <class U>
-    T value_or(U&& default_value) &&
-    {
-        return has_value() ? std::move(value()) : std::forward<U>(default_value);
-    }
-    explicit operator bool() const noexcept { return has_value(); }
-    const T* operator->() const LIFETIMEBOUND { return &value(); }
-    const T& operator*() const LIFETIMEBOUND { return value(); }
-    T* operator->() LIFETIMEBOUND { return &value(); }
-    T& operator*() LIFETIMEBOUND { return value(); }
+    ~Result() { if (*this) this->DestroyValue(); }
 };
 
-template <typename T>
-bilingual_str ErrorString(const Result<T>& result)
-{
-    return result ? bilingual_str{} : std::get<0>(result.m_variant);
-}
+//! Join error and warning messages in a space separated string. This is
+//! intended for simple applications where there's probably only one error or
+//! warning message to report, but multiple messages should not be lost if they
+//! are present. More complicated applications should use GetErrors() and
+//! GetWarning() methods directly.
+template <typename T, typename F>
+inline bilingual_str ErrorString(const Result<T, F>& result) { return detail::JoinMessages(result.GetErrors(), result.GetWarnings()); }
 } // namespace util
 
 #endif // BITCOIN_UTIL_RESULT_H
