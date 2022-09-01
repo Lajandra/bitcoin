@@ -162,6 +162,36 @@ BasicTestingSetup::~BasicTestingSetup()
     gArgs.ClearArgs();
 }
 
+<<<<<<< HEAD
+||||||| parent of fb94363ba45 (refactor: Replace std::optional<bilingual_str> with util::Result)
+CTxMemPool::Options MemPoolOptionsForTest(const NodeContext& node)
+{
+    CTxMemPool::Options mempool_opts{
+        .estimator = node.fee_estimator.get(),
+        // Default to always checking mempool regardless of
+        // chainparams.DefaultConsistencyChecks for tests
+        .check_ratio = 1,
+    };
+    const auto err{ApplyArgsManOptions(*node.args, ::Params(), mempool_opts)};
+    Assert(!err);
+    return mempool_opts;
+}
+
+=======
+CTxMemPool::Options MemPoolOptionsForTest(const NodeContext& node)
+{
+    CTxMemPool::Options mempool_opts{
+        .estimator = node.fee_estimator.get(),
+        // Default to always checking mempool regardless of
+        // chainparams.DefaultConsistencyChecks for tests
+        .check_ratio = 1,
+    };
+    auto result = ApplyArgsManOptions(*node.args, ::Params(), mempool_opts);
+    Assert(result);
+    return mempool_opts;
+}
+
+>>>>>>> fb94363ba45 (refactor: Replace std::optional<bilingual_str> with util::Result)
 ChainTestingSetup::ChainTestingSetup(const std::string& chainName, const std::vector<const char*>& extra_args)
     : BasicTestingSetup(chainName, extra_args)
 {
