@@ -8,7 +8,12 @@
 
 #include <net_types.h> // For banmap_t
 #include <univalue.h>
+<<<<<<< HEAD
 #include <util/fs.h>
+||||||| parent of 4883d30d6a7 (refactor: Replace std::optional<bilingual_str> with util::Result)
+=======
+#include <util/result.h>
+>>>>>>> 4883d30d6a7 (refactor: Replace std::optional<bilingual_str> with util::Result)
 
 #include <optional>
 #include <vector>
@@ -49,7 +54,7 @@ public:
 };
 
 /** Returns an error string on failure */
-std::optional<bilingual_str> LoadAddrman(const NetGroupManager& netgroupman, const ArgsManager& args, std::unique_ptr<AddrMan>& addrman);
+util::Result<std::unique_ptr<AddrMan>> LoadAddrman(const NetGroupManager& netgroupman, const ArgsManager& args);
 
 /**
  * Dump the anchor IP address database (anchors.dat)

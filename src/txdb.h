@@ -10,7 +10,14 @@
 #include <dbwrapper.h>
 #include <kernel/cs_main.h>
 #include <sync.h>
+<<<<<<< HEAD
 #include <util/fs.h>
+||||||| parent of 4883d30d6a7 (refactor: Replace std::optional<bilingual_str> with util::Result)
+#include <fs.h>
+=======
+#include <fs.h>
+#include <util/result.h>
+>>>>>>> 4883d30d6a7 (refactor: Replace std::optional<bilingual_str> with util::Result)
 
 #include <memory>
 #include <optional>
@@ -98,6 +105,6 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 };
 
-std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
+util::Result<void> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
 
 #endif // BITCOIN_TXDB_H
