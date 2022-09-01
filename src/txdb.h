@@ -9,7 +9,12 @@
 #include <coins.h>
 #include <dbwrapper.h>
 #include <sync.h>
+<<<<<<< HEAD
 #include <fs.h>
+||||||| parent of f1a9c713540 (refactor: Replace std::optional<bilingual_str> with util::Result)
+=======
+#include <util/result.h>
+>>>>>>> f1a9c713540 (refactor: Replace std::optional<bilingual_str> with util::Result)
 
 #include <memory>
 #include <optional>
@@ -95,6 +100,6 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 };
 
-std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
+util::Result<void> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
 
 #endif // BITCOIN_TXDB_H
