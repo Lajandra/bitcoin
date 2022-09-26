@@ -170,13 +170,29 @@ decltype(auto) CustomReadField(TypeList<UniValue>, Priority<1>, InvokeContext& i
 }
 
 template <typename Output>
+void CustomBuildField(TypeList<UniValue::type_error>, Priority<1>, InvokeContext& invoke_context, const UniValue::type_error& value, Output&& output)
+{
+    BuildField(TypeList<std::string>(), invoke_context, output, std::string(value.what()));
+}
+
+template <typename Input, typename ReadDest>
+decltype(auto) CustomReadField(TypeList<UniValue::type_error>, Priority<1>, InvokeContext& invoke_context, Input&& input, ReadDest&& read_dest)
+{
+    return ReadField(TypeList<std::string>(), invoke_context, input,
+                     mp::ReadDestEmplace(
+                         mp::TypeList<std::string>(), [&](auto&&... args) -> decltype(auto) {
+                             return read_dest.construct(std::string{std::forward<decltype(args)>(args)...});
+                         }));
+}
+
+template <typename Output>
 void CustomBuildField(
     TypeList<>,
     Priority<1>,
     InvokeContext& invoke_context,
     Output&& output,
     typename std::enable_if<std::is_same<decltype(output.get()),
-    ipc::capnp::messages::GlobalArgs::Builder>::value>::type* enable = nullptr)
+                                         ipc::capnp::messages::GlobalArgs::Builder>::value>::type* enable = nullptr)
 {
     ipc::capnp::BuildGlobalArgs(invoke_context, output.init());
 }
