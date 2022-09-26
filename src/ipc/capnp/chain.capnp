@@ -122,7 +122,7 @@ struct RPCCommand $Proxy.wrap("CRPCCommand") {
 }
 
 interface ActorCallback $Proxy.wrap("ProxyCallback<CRPCCommand::Actor>") {
-    call @0 (context :Proxy.Context, request :JSONRPCRequest, response :Text, lastCallback :Bool) -> (error :Text $Proxy.exception("std::exception"), rpcError :Text $Proxy.exception("UniValue"), response :Text, result: Bool);
+    call @0 (context :Proxy.Context, request :JSONRPCRequest, response :Text, lastCallback :Bool) -> (error :Text $Proxy.exception("std::exception"), rpcError :Text $Proxy.exception("UniValue"), typeError :Text $Proxy.exception("UniValue::type_error"), response :Text, result: Bool);
 }
 
 struct JSONRPCRequest $Proxy.wrap("JSONRPCRequest") {
