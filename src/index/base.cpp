@@ -414,10 +414,18 @@ IndexSummary BaseIndex::GetSummary() const
 void BaseIndex::SetBestBlockIndex(const CBlockIndex* block) {
     assert(!node::fPruneMode || AllowPrune());
 
-    m_best_block_index = block;
     if (AllowPrune() && block) {
         node::PruneLockInfo prune_lock;
         prune_lock.height_first = block->nHeight;
         WITH_LOCK(::cs_main, m_chainstate->m_blockman.UpdatePruneLock(GetName(), prune_lock));
     }
+
+    // Intentionally set m_best_block_index as the last step in this function,
+    // after updating prune locks above, and after making any other references
+    // to *this, so the BlockUntilSyncedToCurrentChain function (which checks
+    // m_best_block_index as an optimization) is more useful and reliable and
+    // can be used to wait for the last BlockConnected notification, and safely
+    // assume that prune locks are updated or that the index is safe to stop
+    // and destroy.
+    m_best_block_index = block;
 }
