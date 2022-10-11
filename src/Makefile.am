@@ -663,8 +663,16 @@ libbitcoin_common_a_SOURCES = \
   $(BITCOIN_CORE_H)
 #
 
+<<<<<<< HEAD
 # util #
 libbitcoin_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
+||||||| parent of cc376363422 (build: remove BOOST_CPPFLAGS from libbitcoin_util)
+# util: shared between all executables.
+libbitcoin_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
+=======
+# util: shared between all executables.
+libbitcoin_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+>>>>>>> cc376363422 (build: remove BOOST_CPPFLAGS from libbitcoin_util)
 libbitcoin_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_util_a_SOURCES = \
   support/lockedpool.cpp \
