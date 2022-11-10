@@ -412,7 +412,8 @@ struct Sections {
         case RPCArg::Type::NUM:
         case RPCArg::Type::AMOUNT:
         case RPCArg::Type::RANGE:
-        case RPCArg::Type::BOOL: {
+        case RPCArg::Type::BOOL:
+        case RPCArg::Type::OBJ_NAMED_PARAMS: {
             if (outer_type == OuterType::NONE) return; // Nothing more to do for non-recursive types on first recursion
             auto left = indent;
             if (arg.m_opts.type_str.size() != 0 && push_name) {
@@ -598,11 +599,16 @@ bool RPCHelpMan::IsValidNumArgs(size_t num_args) const
     return num_required_args <= num_args && num_args <= m_args.size();
 }
 
-std::vector<std::string> RPCHelpMan::GetArgNames() const
+std::vector<std::pair<std::string, bool>> RPCHelpMan::GetArgNames() const
 {
-    std::vector<std::string> ret;
+    std::vector<std::pair<std::string, bool>> ret;
     for (const auto& arg : m_args) {
-        ret.emplace_back(arg.m_names);
+        if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
+            for (const auto& inner : arg.m_inner) {
+                ret.emplace_back(inner.m_names, /*named_only=*/true);
+            }
+        }
+        ret.emplace_back(arg.m_names, /*named_only=*/false);
     }
     return ret;
 }
@@ -634,11 +640,10 @@ std::string RPCHelpMan::ToString() const
 
     // Arguments
     Sections sections;
+    Sections named_only_sections;
     for (size_t i{0}; i < m_args.size(); ++i) {
         const auto& arg = m_args.at(i);
         if (arg.m_opts.hidden) break; // Any arg that follows is also hidden
-
-        if (i == 0) ret += "\nArguments:\n";
 
         // Push named argument name and description
         sections.m_sections.emplace_back(::ToString(i + 1) + ". " + arg.GetFirstName(), arg.ToDescriptionString());
@@ -646,8 +651,20 @@ std::string RPCHelpMan::ToString() const
 
         // Recursively push nested args
         sections.Push(arg);
+
+        // Push named-only argument sections
+        if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
+            for (const auto& arg_inner : arg.m_inner) {
+                named_only_sections.PushSection({arg_inner.GetFirstName(), arg_inner.ToDescriptionString()});
+                named_only_sections.Push(arg_inner);
+            }
+        }
     }
+
+    if (!sections.m_sections.empty()) ret += "\nArguments:\n";
     ret += sections.ToString();
+    if (!named_only_sections.m_sections.empty()) ret += "\nNamed Arguments:\n";
+    ret += named_only_sections.ToString();
 
     // Result
     ret += m_results.ToDescriptionString();
@@ -727,6 +744,7 @@ std::string RPCArg::ToDescriptionString() const
             break;
         }
         case Type::OBJ:
+        case Type::OBJ_NAMED_PARAMS:
         case Type::OBJ_USER_KEYS: {
             ret += "json object";
             break;
@@ -758,6 +776,7 @@ std::string RPCArg::ToDescriptionString() const
         } // no default case, so the compiler can warn about missing cases
     }
     ret += ")";
+    if (m_type == Type::OBJ_NAMED_PARAMS) ret += " Options object that can be used to pass named arguments, listed below.";
     ret += m_description.empty() ? "" : " " + m_description;
     return ret;
 }
@@ -979,6 +998,7 @@ std::string RPCArg::ToStringObj(const bool oneline) const
         }
         return res + "...]";
     case Type::OBJ:
+    case Type::OBJ_NAMED_PARAMS:
     case Type::OBJ_USER_KEYS:
         // Currently unused, so avoid writing dead code
         NONFATAL_UNREACHABLE();
@@ -1002,6 +1022,7 @@ std::string RPCArg::ToString(const bool oneline) const
         return GetFirstName();
     }
     case Type::OBJ:
+    case Type::OBJ_NAMED_PARAMS:
     case Type::OBJ_USER_KEYS: {
         const std::string res = Join(m_inner, ",", [&](const RPCArg& i) { return i.ToStringObj(oneline); });
         if (m_type == Type::OBJ) {
