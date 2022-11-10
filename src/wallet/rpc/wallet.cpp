@@ -600,7 +600,7 @@ RPCHelpMan simulaterawtransaction()
                     {"rawtx", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
                 },
             },
-            {"options", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED_NAMED_ARG, "Options",
+            {"options", RPCArg::Type::NAMED_PARAMS, RPCArg::Optional::OMITTED_NAMED_ARG, "Options",
                 {
                     {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Whether to include watch-only addresses (see RPC importaddress)"},
                 },
