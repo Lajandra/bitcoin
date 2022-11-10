@@ -154,6 +154,7 @@ struct RPCArg {
         AMOUNT,        //!< Special type representing a floating point amount (can be either NUM or STR)
         STR_HEX,       //!< Special type that is a STR with only hex chars
         RANGE,         //!< Special type that is a NUM or [NUM,NUM]
+        NAMED_PARAMS,  //!< Special type that is populated with RPC named parameters
     };
 
     enum class Optional {
@@ -195,7 +196,7 @@ struct RPCArg {
           m_description{std::move(description)},
           m_opts{std::move(opts)}
     {
-        CHECK_NONFATAL(type != Type::ARR && type != Type::OBJ && type != Type::OBJ_USER_KEYS);
+        CHECK_NONFATAL(type != Type::ARR && type != Type::OBJ && type != Type::OBJ_USER_KEYS && type != Type::NAMED_PARAMS);
     }
 
     RPCArg(
@@ -212,7 +213,7 @@ struct RPCArg {
           m_description{std::move(description)},
           m_opts{std::move(opts)}
     {
-        CHECK_NONFATAL(type == Type::ARR || type == Type::OBJ || type == Type::OBJ_USER_KEYS);
+        CHECK_NONFATAL(type == Type::ARR || type == Type::OBJ || type == Type::OBJ_USER_KEYS || type == Type::NAMED_PARAMS);
     }
 
     bool IsOptional() const;
@@ -373,7 +374,8 @@ public:
     UniValue GetArgMap() const;
     /** If the supplied number of args is neither too small nor too high */
     bool IsValidNumArgs(size_t num_args) const;
-    std::vector<std::string> GetArgNames() const;
+    //! Return list of arguments and whether they are named-only.
+    std::vector<std::pair<std::string, bool>> GetArgNames() const;
 
     const std::string m_name;
 
