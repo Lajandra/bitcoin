@@ -210,15 +210,31 @@ class WalletSignerTest(BitcoinTestFramework):
 
         self.log.info('Test send using hww1')
 
+<<<<<<< HEAD
         # Don't broadcast transaction yet so the RPC returns the raw hex
         res = hww.send(outputs={dest:0.5},options={"add_to_wallet": False})
         assert res["complete"]
+||||||| parent of ec11f06e472 (test: Update python tests to use named parameters instead of options objects)
+        res = hww.send(outputs={dest:0.5},options={"add_to_wallet": False})
+        assert(res["complete"])
+=======
+        res = hww.send(outputs={dest:0.5},add_to_wallet=False)
+        assert(res["complete"])
+>>>>>>> ec11f06e472 (test: Update python tests to use named parameters instead of options objects)
         assert_equal(res["hex"], mock_tx)
 
         self.log.info('Test sendall using hww1')
 
+<<<<<<< HEAD
         res = hww.sendall(recipients=[{dest:0.5}, hww.getrawchangeaddress()],options={"add_to_wallet": False})
         assert res["complete"]
+||||||| parent of ec11f06e472 (test: Update python tests to use named parameters instead of options objects)
+        res = hww.sendall(recipients=[{dest:0.5}, hww.getrawchangeaddress()],options={"add_to_wallet": False})
+        assert(res["complete"])
+=======
+        res = hww.sendall(recipients=[{dest:0.5}, hww.getrawchangeaddress()], add_to_wallet=False)
+        assert(res["complete"])
+>>>>>>> ec11f06e472 (test: Update python tests to use named parameters instead of options objects)
         assert_equal(res["hex"], mock_tx)
         # Broadcast transaction so we can bump the fee
         hww.sendrawtransaction(res["hex"])
