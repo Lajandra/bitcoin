@@ -42,11 +42,11 @@ private:
 class RPCTestingSetup : public TestingSetup
 {
 public:
-    UniValue TransformParams(const UniValue& params, std::vector<std::string> arg_names) const;
+    UniValue TransformParams(const UniValue& params, std::vector<std::pair<std::string, bool>> arg_names) const;
     UniValue CallRPC(std::string args);
 };
 
-UniValue RPCTestingSetup::TransformParams(const UniValue& params, std::vector<std::string> arg_names) const
+UniValue RPCTestingSetup::TransformParams(const UniValue& params, std::vector<std::pair<std::string, bool>> arg_names) const
 {
     UniValue transformed_params;
     CRPCTable table;
@@ -84,7 +84,7 @@ BOOST_FIXTURE_TEST_SUITE(rpc_tests, RPCTestingSetup)
 
 BOOST_AUTO_TEST_CASE(rpc_namedparams)
 {
-    const std::vector<std::string> arg_names{{"arg1", "arg2", "arg3", "arg4", "arg5"}};
+    const std::vector<std::pair<std::string, bool>> arg_names{{"arg1", false}, {"arg2", false}, {"arg3", false}, {"arg4", false}, {"arg5", false}};
 
     // Make sure named arguments are transformed into positional arguments in correct places separated by nulls
     BOOST_CHECK_EQUAL(TransformParams(JSON(R"({"arg2": 2, "arg4": 4})"), arg_names).write(), "[null,2,null,4]");
