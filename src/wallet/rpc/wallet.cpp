@@ -613,7 +613,13 @@ RPCHelpMan simulaterawtransaction()
                     {"rawtx", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
                 },
             },
+<<<<<<< HEAD
             {"options", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED, "Options",
+||||||| parent of da7ae4ec5a1 (RPC: Allow RPC methods accepting options to take named parameters)
+            {"options", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED_NAMED_ARG, "Options",
+=======
+            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+>>>>>>> da7ae4ec5a1 (RPC: Allow RPC methods accepting options to take named parameters)
                 {
                     {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Whether to include watch-only addresses (see RPC importaddress)"},
                 },

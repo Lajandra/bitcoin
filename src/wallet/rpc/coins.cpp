@@ -510,7 +510,13 @@ RPCHelpMan listunspent()
                     },
                     {"include_unsafe", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include outputs that are not safe to spend\n"
                               "See description of \"safe\" attribute below."},
+<<<<<<< HEAD
                     {"query_options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "JSON with query options",
+||||||| parent of da7ae4ec5a1 (RPC: Allow RPC methods accepting options to take named parameters)
+                    {"query_options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "JSON with query options",
+=======
+                    {"query_options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+>>>>>>> da7ae4ec5a1 (RPC: Allow RPC methods accepting options to take named parameters)
                         {
                             {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO in " + CURRENCY_UNIT + ""},
                             {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO in " + CURRENCY_UNIT + ""},

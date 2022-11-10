@@ -1292,7 +1292,13 @@ RPCHelpMan importmulti()
                             },
                         },
                         RPCArgOptions{.oneline_description="\"requests\""}},
+<<<<<<< HEAD
                     {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+||||||| parent of da7ae4ec5a1 (RPC: Allow RPC methods accepting options to take named parameters)
+                    {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+=======
+                    {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+>>>>>>> da7ae4ec5a1 (RPC: Allow RPC methods accepting options to take named parameters)
                         {
                             {"rescan", RPCArg::Type::BOOL, RPCArg::Default{true}, "Scan the chain and mempool for wallet transactions after all imports."},
                         },
