@@ -428,13 +428,14 @@ struct Sections {
             break;
         }
         case RPCArg::Type::OBJ:
-        case RPCArg::Type::OBJ_USER_KEYS: {
+        case RPCArg::Type::OBJ_USER_KEYS:
+        case RPCArg::Type::NAMED_PARAMS: {
             const auto right = outer_type == OuterType::NONE ? "" : arg.ToDescriptionString();
             PushSection({indent + (push_name ? "\"" + arg.GetName() + "\": " : "") + "{", right});
             for (const auto& arg_inner : arg.m_inner) {
                 Push(arg_inner, current_indent + 2, OuterType::OBJ);
             }
-            if (arg.m_type != RPCArg::Type::OBJ) {
+            if (arg.m_type == RPCArg::Type::OBJ_USER_KEYS) {
                 PushSection({indent_next + "...", ""});
             }
             PushSection({indent + "}" + (outer_type != OuterType::NONE ? "," : ""), ""});
@@ -601,11 +602,16 @@ bool RPCHelpMan::IsValidNumArgs(size_t num_args) const
     return num_required_args <= num_args && num_args <= m_args.size();
 }
 
-std::vector<std::string> RPCHelpMan::GetArgNames() const
+std::vector<std::pair<std::string, bool>> RPCHelpMan::GetArgNames() const
 {
-    std::vector<std::string> ret;
+    std::vector<std::pair<std::string, bool>> ret;
     for (const auto& arg : m_args) {
-        ret.emplace_back(arg.m_names);
+        ret.emplace_back(arg.m_names, false);
+        if (arg.m_type == RPCArg::Type::NAMED_PARAMS) {
+            for (const auto& inner : arg.m_inner) {
+                ret.emplace_back(inner.m_names, true);
+            }
+        }
     }
     return ret;
 }
@@ -730,7 +736,8 @@ std::string RPCArg::ToDescriptionString() const
             break;
         }
         case Type::OBJ:
-        case Type::OBJ_USER_KEYS: {
+        case Type::OBJ_USER_KEYS:
+        case Type::NAMED_PARAMS: {
             ret += "json object";
             break;
         }
@@ -983,6 +990,7 @@ std::string RPCArg::ToStringObj(const bool oneline) const
         return res + "...]";
     case Type::OBJ:
     case Type::OBJ_USER_KEYS:
+    case Type::NAMED_PARAMS:
         // Currently unused, so avoid writing dead code
         NONFATAL_UNREACHABLE();
     } // no default case, so the compiler can warn about missing cases
@@ -1005,7 +1013,8 @@ std::string RPCArg::ToString(const bool oneline) const
         return GetFirstName();
     }
     case Type::OBJ:
-    case Type::OBJ_USER_KEYS: {
+    case Type::OBJ_USER_KEYS:
+    case Type::NAMED_PARAMS: {
         const std::string res = Join(m_inner, ",", [&](const RPCArg& i) { return i.ToStringObj(oneline); });
         if (m_type == Type::OBJ) {
             return "{" + res + "}";

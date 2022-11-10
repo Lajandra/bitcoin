@@ -389,7 +389,7 @@ std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq)
  * Process named arguments into a vector of positional arguments, based on the
  * passed-in specification for the RPC call's arguments.
  */
-static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, const std::vector<std::string>& argNames)
+static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, const std::vector<std::pair<std::string, bool>>& argNames)
 {
     JSONRPCRequest out = in;
     out.params = UniValue(UniValue::VARR);
@@ -404,7 +404,8 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     // Process expected parameters.
     int hole = 0;
     int initial_hole_size = 0;
-    for (const std::string &argNamePattern: argNames) {
+    std::optional<UniValue> next_arg;
+    for (const auto& [argNamePattern, named_only]: argNames) {
         std::vector<std::string> vargNames = SplitString(argNamePattern, '|');
         auto fr = argsIn.end();
         for (const std::string & argName : vargNames) {
@@ -413,7 +414,12 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
                 break;
             }
         }
+        if (!named_only && next_arg) {
+            out.params.push_back(*next_arg);
+            next_arg.reset();
+        }
         if (fr != argsIn.end()) {
+            if (named_only && hole > 0) --hole;
             for (int i = 0; i < hole; ++i) {
                 // Fill hole between specified parameters with JSON nulls,
                 // but not at the end (for backwards compatibility with calls
@@ -421,13 +427,20 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
                 out.params.push_back(UniValue());
             }
             hole = 0;
-            out.params.push_back(*fr->second);
+            if (named_only) {
+                if (!next_arg) next_arg.emplace(UniValue::VOBJ);
+                next_arg->pushKV(fr->first, *fr->second);
+            } else {
+                next_arg.emplace(*fr->second);
+            }
             argsIn.erase(fr);
-        } else {
+        } else if (!named_only) {
             hole += 1;
             if (out.params.empty()) initial_hole_size = hole;
         }
     }
+    if (next_arg) out.params.push_back(*next_arg);
+
     // If leftover "args" param was found, use it as a source of positional
     // arguments and add named arguments after. This is a convenience for
     // clients that want to pass a combination of named and positional
@@ -435,7 +448,7 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     auto positional_args = argsIn.find("args");
     if (positional_args != argsIn.end() && positional_args->second->isArray()) {
         if (initial_hole_size < std::min<int>(positional_args->second->size(), argNames.size())) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter " + argNames[initial_hole_size] + " specified twice both as positional and named argument");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter " + argNames[initial_hole_size].first + " specified twice both as positional and named argument");
         }
         UniValue named_args = out.params;
         out.params = *positional_args->second;
