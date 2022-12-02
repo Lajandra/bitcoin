@@ -299,7 +299,7 @@ UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<s
     }
 
     if (!positional_args.empty()) {
-        params.pushKV("args", positional_args);
+        params.__pushKV("args", positional_args);
     }
 
     return params;
