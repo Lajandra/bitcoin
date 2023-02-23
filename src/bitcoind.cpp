@@ -9,6 +9,7 @@
 
 #include <chainparams.h>
 #include <clientversion.h>
+#include <common/init.h>
 #include <common/url.h>
 #include <compat/compat.h>
 #include <init.h>
@@ -150,17 +151,8 @@ static bool AppInit(NodeContext& node, int argc, char* argv[])
     std::any context{&node};
     try
     {
-        if (!CheckDataDirOption()) {
-            return InitError(Untranslated(strprintf("Specified data directory \"%s\" does not exist.", args.GetArg("-datadir", ""))));
-        }
-        if (!args.ReadConfigFiles(error, true)) {
-            return InitError(Untranslated(strprintf("Error reading configuration file: %s", error)));
-        }
-        // Check for chain settings (Params() calls are only valid after this clause)
-        try {
-            SelectParams(args.GetChainName());
-        } catch (const std::exception& e) {
-            return InitError(Untranslated(strprintf("%s", e.what())));
+        if (auto error = common::InitConfig(args)) {
+            return InitError(*error);
         }
 
         // Error out when loose non-argument tokens are encountered on command line
