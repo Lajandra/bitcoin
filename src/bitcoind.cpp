@@ -9,6 +9,7 @@
 
 #include <chainparams.h>
 #include <clientversion.h>
+#include <common/init.h>
 #include <common/url.h>
 #include <compat/compat.h>
 #include <init.h>
@@ -151,6 +152,7 @@ static bool AppInit(NodeContext& node, int argc, char* argv[])
     try
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
         if (!CheckDataDirOption(args)) {
             return InitError(Untranslated(strprintf("Specified data directory \"%s\" does not exist.\n", args.GetArg("-datadir", ""))));
 ||||||| parent of 5da717e04ea (scripted-diff: Remove double newlines after some init errors)
@@ -169,6 +171,22 @@ static bool AppInit(NodeContext& node, int argc, char* argv[])
             SelectParams(args.GetChainName());
         } catch (const std::exception& e) {
             return InitError(Untranslated(strprintf("%s", e.what())));
+||||||| parent of 15cb0a2492d (Deduplicate bitcoind and bitcoin-qt init code)
+        if (!CheckDataDirOption()) {
+            return InitError(Untranslated(strprintf("Specified data directory \"%s\" does not exist.", args.GetArg("-datadir", ""))));
+        }
+        if (!args.ReadConfigFiles(error, true)) {
+            return InitError(Untranslated(strprintf("Error reading configuration file: %s", error)));
+        }
+        // Check for chain settings (Params() calls are only valid after this clause)
+        try {
+            SelectParams(args.GetChainName());
+        } catch (const std::exception& e) {
+            return InitError(Untranslated(strprintf("%s", e.what())));
+=======
+        if (auto error = common::InitConfig(args)) {
+            return InitError(error->message, error->details);
+>>>>>>> 15cb0a2492d (Deduplicate bitcoind and bitcoin-qt init code)
         }
 
         // Error out when loose non-argument tokens are encountered on command line
@@ -176,11 +194,6 @@ static bool AppInit(NodeContext& node, int argc, char* argv[])
             if (!IsSwitchChar(argv[i][0])) {
                 return InitError(Untranslated(strprintf("Command line contains unexpected token '%s', see bitcoind -h for a list of options.", argv[i])));
             }
-        }
-
-        if (!args.InitSettings(error)) {
-            InitError(Untranslated(error));
-            return false;
         }
 
         // -server defaults to true for bitcoind but not for the GUI so do this here
