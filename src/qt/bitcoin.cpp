@@ -9,6 +9,7 @@
 #include <qt/bitcoin.h>
 
 #include <chainparams.h>
+#include <common/init.h>
 #include <init.h>
 #include <interfaces/handler.h>
 #include <interfaces/init.h>
@@ -587,33 +588,19 @@ int GuiMain(int argc, char* argv[])
     // Gracefully exit if the user cancels
     if (!Intro::showIfNeeded(did_show_intro, prune_MiB)) return EXIT_SUCCESS;
 
-    /// 6a. Determine availability of data directory
-    if (!CheckDataDirOption()) {
-        InitError(strprintf(Untranslated("Specified data directory \"%s\" does not exist."), gArgs.GetArg("-datadir", "")));
-        QMessageBox::critical(nullptr, PACKAGE_NAME,
-            QObject::tr("Error: Specified data directory \"%1\" does not exist.").arg(QString::fromStdString(gArgs.GetArg("-datadir", ""))));
-        return EXIT_FAILURE;
-    }
     try {
-        /// 6b. Parse bitcoin.conf
-        /// - Do not call gArgs.GetDataDirNet() before this step finishes
-        if (!gArgs.ReadConfigFiles(error, true)) {
-            InitError(strprintf(Untranslated("Error reading configuration file: %s"), error));
-            QMessageBox::critical(nullptr, PACKAGE_NAME,
-                QObject::tr("Error: Cannot parse configuration file: %1.").arg(QString::fromStdString(error)));
-            return EXIT_FAILURE;
-        }
-
-        /// 7. Determine network (and switch to network specific options)
+        /// 6-7. Parse bitcoin.conf, determine network, switch to network specific options, and create datadir.
+        // - Do not call gArgs.GetDataDirNet() before this step finishes
         // - Do not call Params() before this step
-        // - Do this after parsing the configuration file, as the network can be switched there
         // - QSettings() will use the new application name after this, resulting in network-specific settings
         // - Needs to be done before createOptionsModel
-
-        // Check for chain settings (Params() calls are only valid after this clause)
-        SelectParams(gArgs.GetChainName());
+        if (auto error = common::InitConfig(gArgs)) {
+            InitError(*error);
+            QMessageBox::critical(nullptr, PACKAGE_NAME, QObject::tr("Error: %1").arg(QString::fromStdString(error->translated)));
+            return EXIT_FAILURE;
+        }
     } catch(std::exception &e) {
-        InitError(Untranslated(strprintf("%s", e.what())));
+        InitError(Untranslated(e.what()));
         QMessageBox::critical(nullptr, PACKAGE_NAME, QObject::tr("Error: %1").arg(e.what()));
         return EXIT_FAILURE;
     }
