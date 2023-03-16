@@ -189,6 +189,7 @@ protected:
     };
 
     mutable RecursiveMutex cs_args;
+    std::optional<fs::path> m_default_datadir GUARDED_BY(cs_args);
     util::Settings m_settings GUARDED_BY(cs_args);
     std::vector<std::string> m_command GUARDED_BY(cs_args);
     std::string m_network GUARDED_BY(cs_args);
@@ -226,6 +227,9 @@ protected:
 
     ArgsManager();
     ~ArgsManager();
+
+    //! Override default data directory.
+    void SetDefaultDataDir(fs::path);
 
     /**
      * Select the network in use

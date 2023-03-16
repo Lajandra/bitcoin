@@ -412,6 +412,12 @@ const fs::path& ArgsManager::GetBlocksDirPath() const
     return path;
 }
 
+void ArgsManager::SetDefaultDataDir(fs::path path)
+{
+    LOCK(cs_args);
+    m_default_datadir = std::move(path);
+}
+
 const fs::path& ArgsManager::GetDataDir(bool net_specific) const
 {
     LOCK(cs_args);
@@ -427,6 +433,8 @@ const fs::path& ArgsManager::GetDataDir(bool net_specific) const
             path = "";
             return path;
         }
+    } else if (m_default_datadir) {
+        path = *m_default_datadir;
     } else {
         path = GetDefaultDataDir();
     }
