@@ -282,6 +282,9 @@ class ConfArgsTest(BitcoinTestFramework):
                     unexpected_msgs=seednode_ignored):
                 self.restart_node(0, extra_args=[connect_arg, '-seednode=fakeaddress2'])
 
+    def test_ignored_conf(self):
+        pass
+
     def run_test(self):
         self.test_log_buffer()
         self.test_args_log()
@@ -330,6 +333,22 @@ class ConfArgsTest(BitcoinTestFramework):
         self.nodes[0].datadir = new_data_dir_2
         self.start_node(0, [f'-datadir={new_data_dir_2}', f'-conf={conf_file}'])
         assert os.path.exists(os.path.join(new_data_dir_2, self.chain, 'blocks'))
+
+
+def get_temp_default_datadir(temp_dir: pathlib.Path) -> tuple[dict, pathlib.Path]:
+    """Return os-specific environment variables that can be set to make the
+    GetDefaultDataDir() function return a datadir path under the provided
+    temp_dir, as well as the complete path it would return."""
+    if sys.platform == "win32":
+        env = dict(CSIDL_APPDATA=str(temp_dir))
+        datadir = temp_dir / "Bitcoin"
+    else:
+      env = dict(HOME=str(temp_dir))
+      if sys.platform == "darwin":
+          datadir = temp_dir / "Library/Application Support/Bitcoin";
+      else:
+          datadir = temp_dir / ".bitcoin"
+    return env, datadir
 
 
 if __name__ == '__main__':
