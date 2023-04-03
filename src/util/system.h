@@ -44,6 +44,18 @@ void SetupEnvironment();
 bool SetupNetworking();
 // Return true if -datadir option points to a valid directory or is not specified.
 bool CheckDataDirOption(const ArgsManager& args);
+<<<<<<< HEAD
+||||||| parent of 3c2b5edbfbf (Make GUI and CLI tools use the same datadir)
+#ifdef WIN32
+fs::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
+#endif
+=======
+// Create data directory if it does not exist.
+bool CreateDataDir(const fs::path& datadir, std::string& error);
+#ifdef WIN32
+fs::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
+#endif
+>>>>>>> 3c2b5edbfbf (Make GUI and CLI tools use the same datadir)
 #ifndef WIN32
 std::string ShellEscape(const std::string& arg);
 #endif
