@@ -528,6 +528,29 @@ BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)
     }
 }
 
+BOOST_AUTO_TEST_CASE(check_dup_option_names)
+{
+    // Make sure error is triggered if parameters and options that can be passed by name have the same names.
+    auto make_rpc = [](std::string param_name, std::string option_name, bool also_positional) {
+        return RPCHelpMan{
+            "method_name",
+            "description",
+            {RPCArg{param_name, RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "description"},
+             RPCArg{"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "",
+                {
+                    {option_name, RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "description", RPCArgOptions{.also_positional = also_positional}},
+                }}},
+            RPCResults{},
+            RPCExamples{""}};
+    };
+
+    make_rpc("param", "option", false);
+    make_rpc("param", "option", true);
+    BOOST_CHECK_THROW(make_rpc("param", "param", false), NonFatalCheckError);
+    make_rpc("param", "param", true);
+    BOOST_CHECK_THROW(make_rpc("param", "option|param", false), NonFatalCheckError);
+}
+
 BOOST_AUTO_TEST_CASE(help_example)
 {
     // test different argument types

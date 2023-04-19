@@ -493,6 +493,14 @@ RPCHelpMan::RPCHelpMan(std::string name, std::string description, std::vector<RP
         for (const std::string& name : names) {
             CHECK_NONFATAL(named_args.insert(name).second);
         }
+        if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
+            for (const auto& inner : arg.m_inner) {
+                std::vector<std::string> inner_names = SplitString(inner.m_names, '|');
+                for (const std::string& inner_name : inner_names) {
+                    CHECK_NONFATAL(named_args.insert(inner_name).second || inner.m_opts.also_positional);
+                }
+            }
+        }
         // Default value type should match argument type only when defined
         if (arg.m_fallback.index() == 2) {
             const RPCArg::Type type = arg.m_type;
