@@ -627,7 +627,12 @@ ReadKeyValue(CWallet* pwallet, DataStream& ssKey, CDataStream& ssValue,
             } else if (strKey.compare(0, 2, "rr") == 0) {
                 // Load "rr##" keys where ## is a decimal number, and strValue
                 // is a serialized RecentRequestEntry object.
-                pwallet->LoadAddressReceiveRequest(dest, strKey.substr(2), strValue);
+                int64_t request_id;
+                if (ParseInt64(strKey.substr(2), request_id)) {
+                    pwallet->LoadAddressReceiveRequest(dest, request_id, strValue);
+                } else {
+                    pwallet->WalletLogPrintf("Warning: ignoring non-integer request id '%s' for address '%s'\n", purpose_str, strAddress);
+                }
             }
         } else if (strType == DBKeys::HDCHAIN) {
             CHDChain chain;
@@ -1107,14 +1112,14 @@ bool WalletBatch::WriteAddressPreviouslySpent(const CTxDestination& dest, bool p
     return previously_spent ? WriteIC(key, std::string("1")) : EraseIC(key);
 }
 
-bool WalletBatch::WriteAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& receive_request)
+bool WalletBatch::WriteAddressReceiveRequest(const CTxDestination& dest, int64_t id, const std::string& receive_request)
 {
-    return WriteIC(std::make_pair(DBKeys::DESTDATA, std::make_pair(EncodeDestination(dest), "rr" + id)), receive_request);
+    return WriteIC(std::make_pair(DBKeys::DESTDATA, std::make_pair(EncodeDestination(dest), "rr" + ToString(id))), receive_request);
 }
 
-bool WalletBatch::EraseAddressReceiveRequest(const CTxDestination& dest, const std::string& id)
+bool WalletBatch::EraseAddressReceiveRequest(const CTxDestination& dest, int64_t id)
 {
-    return EraseIC(std::make_pair(DBKeys::DESTDATA, std::make_pair(EncodeDestination(dest), "rr" + id)));
+    return EraseIC(std::make_pair(DBKeys::DESTDATA, std::make_pair(EncodeDestination(dest), "rr" + ToString(id))));
 }
 
 bool WalletBatch::EraseAddressData(const CTxDestination& dest)

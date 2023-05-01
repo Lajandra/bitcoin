@@ -227,7 +227,7 @@ public:
         LOCK(m_wallet->cs_wallet);
         return m_wallet->GetAddressReceiveRequests();
     }
-    bool setAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& value) override {
+    bool setAddressReceiveRequest(const CTxDestination& dest, int64_t id, const std::string& value) override {
         // Note: The setAddressReceiveRequest interface used by the GUI to store
         // receive requests is a little awkward and could be improved in the
         // future:

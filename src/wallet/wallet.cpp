@@ -2805,7 +2805,7 @@ void CWallet::LoadAddressPreviouslySpent(const CTxDestination& dest)
     m_address_book[dest].previously_spent = true;
 }
 
-void CWallet::LoadAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& request)
+void CWallet::LoadAddressReceiveRequest(const CTxDestination& dest, int64_t id, const std::string& request)
 {
     m_address_book[dest].receive_requests[id] = request;
 }
@@ -2827,14 +2827,14 @@ std::vector<std::string> CWallet::GetAddressReceiveRequests() const
     return values;
 }
 
-bool CWallet::SetAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id, const std::string& value)
+bool CWallet::SetAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, int64_t id, const std::string& value)
 {
     if (!batch.WriteAddressReceiveRequest(dest, id, value)) return false;
     m_address_book[dest].receive_requests[id] = value;
     return true;
 }
 
-bool CWallet::EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id)
+bool CWallet::EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, int64_t id)
 {
     if (!batch.EraseAddressReceiveRequest(dest, id)) return false;
     m_address_book[dest].receive_requests.erase(id);

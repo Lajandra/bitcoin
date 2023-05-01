@@ -232,11 +232,11 @@ struct CAddressBookData
     /**
      * Map containing data about previously generated receive requests
      * requesting funds to be sent to this address. Only present for IsMine
-     * addresses. Map keys are decimal numbers uniquely identifying each
-     * request, and map values are serialized RecentRequestEntry objects
-     * containing BIP21 URI information including message and amount.
+     * addresses. Map keys are numbers uniquely identifying each request, and
+     * map values are serialized RecentRequestEntry objects containing BIP21 URI
+     * information including message and amount.
      */
-    std::map<std::string, std::string> receive_requests{};
+    std::map<int64_t, std::string> receive_requests{};
 
     /** Accessor methods. */
     bool IsChange() const { return !label.has_value(); }
@@ -519,7 +519,7 @@ public:
     //! Marks destination as previously spent.
     void LoadAddressPreviouslySpent(const CTxDestination& dest) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     //! Appends payment request to destination.
-    void LoadAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& request) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void LoadAddressReceiveRequest(const CTxDestination& dest, int64_t id, const std::string& request) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     //! Holds a timestamp at which point the wallet is scheduled (externally) to be relocked. Caller must arrange for actual relocking to occur via Lock().
     int64_t nRelockTime GUARDED_BY(cs_wallet){0};
@@ -750,8 +750,8 @@ public:
     bool SetAddressPreviouslySpent(WalletBatch& batch, const CTxDestination& dest, bool used) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     std::vector<std::string> GetAddressReceiveRequests() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    bool SetAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id, const std::string& value) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    bool EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool SetAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, int64_t id, const std::string& value) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, int64_t id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     unsigned int GetKeyPoolSize() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

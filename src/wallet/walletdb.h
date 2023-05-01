@@ -266,8 +266,8 @@ public:
     bool EraseLockedUTXO(const COutPoint& output);
 
     bool WriteAddressPreviouslySpent(const CTxDestination& dest, bool previously_spent);
-    bool WriteAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& receive_request);
-    bool EraseAddressReceiveRequest(const CTxDestination& dest, const std::string& id);
+    bool WriteAddressReceiveRequest(const CTxDestination& dest, int64_t id, const std::string& receive_request);
+    bool EraseAddressReceiveRequest(const CTxDestination& dest, int64_t id);
     bool EraseAddressData(const CTxDestination& dest);
 
     bool WriteActiveScriptPubKeyMan(uint8_t type, const uint256& id, bool internal);
