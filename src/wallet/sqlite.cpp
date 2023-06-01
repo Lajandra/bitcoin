@@ -34,6 +34,17 @@ static void ErrorLogCallback(void* arg, int code, const char* msg)
     LogPrintf("SQLite Error. Code: %d. Message: %s\n", code, msg);
 }
 
+static int TraceSqlCallback(unsigned code, void* context, void* param1, void* param2)
+{
+    auto* db = static_cast<SQLiteDatabase*>(context);
+    if (code == SQLITE_TRACE_STMT) {
+        char* sql = sqlite3_expanded_sql(static_cast<sqlite3_stmt*>(param1));
+        LogPrintf("[%s] SQLite Statement: %s\n", db->Filename(), sql);
+        sqlite3_free(sql);
+    }
+    return SQLITE_OK;
+}
+
 static bool BindBlobToStatement(sqlite3_stmt* stmt,
                                 int index,
                                 Span<const std::byte> blob,
@@ -234,6 +245,13 @@ void SQLiteDatabase::Open()
         ret = sqlite3_extended_result_codes(m_db, 1);
         if (ret != SQLITE_OK) {
             throw std::runtime_error(strprintf("SQLiteDatabase: Failed to enable extended result codes: %s\n", sqlite3_errstr(ret)));
+        }
+        // Trace SQL statements if tracing is enabled with -debug=walletdb -loglevel=walletdb:trace
+        if (LogAcceptCategory(BCLog::WALLETDB, BCLog::Level::Trace)) {
+           ret = sqlite3_trace_v2(m_db, SQLITE_TRACE_STMT, TraceSqlCallback, this);
+           if (ret != SQLITE_OK) {
+               LogPrintf("Failed to enable SQL tracing for %s\n", Filename());
+           }
         }
     }
 
