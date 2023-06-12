@@ -5661,6 +5661,7 @@ void Chainstate::InvalidateCoinsDBOnDisk()
             "snapshot directory %s, otherwise you will encounter the same error again "
             "on the next startup.",
             src_str, dest_str, src_str));
+        throw;
     }
 }
 
