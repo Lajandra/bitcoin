@@ -472,10 +472,10 @@ struct CustomUintFormatter
         if (v < 0 || v > MAX) throw std::ios_base::failure("CustomUintFormatter value out of range");
         if (BigEndian) {
             uint64_t raw = htobe64(v);
-            s.write({AsBytePtr(&raw) + 8 - Bytes, Bytes});
+            s.write({reinterpret_cast<const std::byte*>(&raw) + 8 - Bytes, Bytes});
         } else {
             uint64_t raw = htole64(v);
-            s.write({AsBytePtr(&raw), Bytes});
+            s.write({reinterpret_cast<const std::byte*>(&raw), Bytes});
         }
     }
 
@@ -485,10 +485,10 @@ struct CustomUintFormatter
         static_assert(std::numeric_limits<U>::max() >= MAX && std::numeric_limits<U>::min() <= 0, "Assigned type too small");
         uint64_t raw = 0;
         if (BigEndian) {
-            s.read({AsBytePtr(&raw) + 8 - Bytes, Bytes});
+            s.read({reinterpret_cast<std::byte*>(&raw) + 8 - Bytes, Bytes});
             v = static_cast<I>(be64toh(raw));
         } else {
-            s.read({AsBytePtr(&raw), Bytes});
+            s.read({reinterpret_cast<std::byte*>(&raw), Bytes});
             v = static_cast<I>(le64toh(raw));
         }
     }
