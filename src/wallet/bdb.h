@@ -186,6 +186,11 @@ public:
     operator Dbt*();
 };
 
+inline Span<const std::byte> SpanFromDbt(const SafeDbt& dbt)
+{
+   return {reinterpret_cast<const std::byte*>(dbt.get_data()), dbt.get_size()};
+}
+
 class BerkeleyCursor : public DatabaseCursor
 {
 private:
