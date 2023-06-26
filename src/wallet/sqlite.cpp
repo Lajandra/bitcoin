@@ -434,7 +434,7 @@ bool SQLiteBatch::ReadKey(DataStream&& key, DataStream& value)
         return false;
     }
     // Leftmost column in result is index 0
-    const std::byte* data{AsBytePtr(sqlite3_column_blob(m_read_stmt, 0))};
+    const std::byte* data{reinterpret_cast<const std::byte*>(sqlite3_column_blob(m_read_stmt, 0))};
     size_t data_size(sqlite3_column_bytes(m_read_stmt, 0));
     value.clear();
     value.write({data, data_size});
@@ -527,10 +527,10 @@ DatabaseCursor::Status SQLiteCursor::Next(DataStream& key, DataStream& value)
     value.clear();
 
     // Leftmost column in result is index 0
-    const std::byte* key_data{AsBytePtr(sqlite3_column_blob(m_cursor_stmt, 0))};
+    const std::byte* key_data{reinterpret_cast<const std::byte*>(sqlite3_column_blob(m_cursor_stmt, 0))};
     size_t key_data_size(sqlite3_column_bytes(m_cursor_stmt, 0));
     key.write({key_data, key_data_size});
-    const std::byte* value_data{AsBytePtr(sqlite3_column_blob(m_cursor_stmt, 1))};
+    const std::byte* value_data{reinterpret_cast<const std::byte*>(sqlite3_column_blob(m_cursor_stmt, 1))};
     size_t value_data_size(sqlite3_column_bytes(m_cursor_stmt, 1));
     value.write({value_data, value_data_size});
     return Status::MORE;
