@@ -933,9 +933,11 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
             }
         }
 
-        if (chainman.m_blockman.StopAfterBlockImport()) {
+        if (kernel::IsInterrupted(chainman.GetNotifications().blocksImported())) {
             LogPrintf("Stopping after block import\n");
-            StartShutdown();
+            // Just returning void for now. This could be changed to bubble up
+            // the kernel::Interrupted value to the caller so the caller could
+            // distinguish between completed and interrupted operations.
             return;
         }
     } // End scope of ImportingNow
