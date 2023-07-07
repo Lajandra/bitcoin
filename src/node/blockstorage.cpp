@@ -10,6 +10,7 @@
 #include <flatfile.h>
 #include <hash.h>
 #include <kernel/chainparams.h>
+#include <kernel/context.h>
 #include <logging.h>
 #include <pow.h>
 #include <reverse_iterator.h>
@@ -935,7 +936,9 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
 
         if (chainman.m_blockman.StopAfterBlockImport()) {
             LogPrintf("Stopping after block import\n");
-            StartShutdown();
+            // Accessing g_context is a temporary hack that can be removed when
+            // -stopafterblockimport implementation is cleaned up in #28048.
+            Assert(kernel::g_context)->interrupt();
             return;
         }
     } // End scope of ImportingNow

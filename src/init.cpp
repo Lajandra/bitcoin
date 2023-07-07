@@ -65,7 +65,6 @@
 #include <scheduler.h>
 #include <script/sigcache.h>
 #include <script/standard.h>
-#include <shutdown.h>
 #include <sync.h>
 #include <timedata.h>
 #include <torcontrol.h>
@@ -185,17 +184,16 @@ static fs::path GetPidFile(const ArgsManager& args)
 // The network-processing threads are all part of a thread group
 // created by AppInit() or the Qt main() function.
 //
-// A clean exit happens when StartShutdown() or the SIGTERM
-// signal handler sets ShutdownRequested(), which makes main thread's
-// WaitForShutdown() interrupts the thread group.
-// And then, WaitForShutdown() makes all other on-going threads
-// in the thread group join the main thread.
+// A clean exit happens when the SignalInterrupt object or SIGTERM signal
+// handler is triggered. Which makes main thread's SignalInterrupt::wait() call
+// return, and join all other ongoing threads in the thread group to the main
+// thread.
 // Shutdown() is then called to clean up database connections, and stop other
 // threads that should only be stopped after the main network-processing
 // threads have exited.
 //
 // Shutdown for Qt is very similar, only it uses a QTimer to detect
-// ShutdownRequested() getting set, and then does the normal Qt
+// SignalInterrupt getting set, and then does the normal Qt
 // shutdown thing.
 //
 
@@ -366,7 +364,7 @@ void Shutdown(NodeContext& node)
 #ifndef WIN32
 static void HandleSIGTERM(int)
 {
-    StartShutdown();
+    Assert(kernel::g_context)->interrupt();
 }
 
 static void HandleSIGHUP(int)
@@ -376,7 +374,7 @@ static void HandleSIGHUP(int)
 #else
 static BOOL WINAPI consoleCtrlHandler(DWORD dwCtrlType)
 {
-    StartShutdown();
+    Assert(kernel::g_context)->interrupt();
     Sleep(INFINITE);
     return true;
 }
@@ -664,7 +662,7 @@ static bool AppInitServers(NodeContext& node)
     const ArgsManager& args = *Assert(node.args);
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
-    if (!InitHTTPServer())
+    if (!InitHTTPServer(node.kernel->interrupt))
         return false;
     StartRPC();
     node.rpc_interruption_point = RpcInterruptionPoint;
@@ -1408,7 +1406,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     // ********************************************************* Step 7: load block chain
 
-    node.notifications = std::make_unique<KernelNotifications>(node.exit_status);
+    node.notifications = std::make_unique<KernelNotifications>(node.kernel->interrupt, node.exit_status);
     fReindex = args.GetBoolArg("-reindex", false);
     bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
     ChainstateManager::Options chainman_opts{
@@ -1459,7 +1457,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     }
     LogPrintf("* Using %.1f MiB for in-memory UTXO set (plus up to %.1f MiB of unused mempool space)\n", cache_sizes.coins * (1.0 / 1024 / 1024), mempool_opts.max_size_bytes * (1.0 / 1024 / 1024));
 
-    for (bool fLoaded = false; !fLoaded && !ShutdownRequested();) {
+    for (bool fLoaded = false; !fLoaded && !node.kernel->interrupt;) {
         node.mempool = std::make_unique<CTxMemPool>(mempool_opts);
 
         node.chainman = std::make_unique<ChainstateManager>(node.kernel->interrupt, chainman_opts, blockman_opts);
@@ -1473,7 +1471,6 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         options.check_blocks = args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS);
         options.check_level = args.GetIntArg("-checklevel", DEFAULT_CHECKLEVEL);
         options.require_full_verification = args.IsArgSet("-checkblocks") || args.IsArgSet("-checklevel");
-        options.check_interrupt = ShutdownRequested;
         options.coins_error_cb = [] {
             uiInterface.ThreadSafeMessageBox(
                 _("Error reading from database, shutting down."),
@@ -1508,7 +1505,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             return InitError(error);
         }
 
-        if (!fLoaded && !ShutdownRequested()) {
+        if (!fLoaded && !node.kernel->interrupt) {
             // first suggest a reindex
             if (!options.reindex) {
                 bool fRet = uiInterface.ThreadSafeQuestion(
@@ -1517,7 +1514,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                     "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
                 if (fRet) {
                     fReindex = true;
-                    AbortShutdown();
+                    node.kernel->interrupt.reset();
                 } else {
                     LogPrintf("Aborted block database rebuild. Exiting.\n");
                     return false;
@@ -1531,7 +1528,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
     // As the program has not fully started yet, Shutdown() is possibly overkill.
-    if (ShutdownRequested()) {
+    if (node.kernel->interrupt) {
         LogPrintf("Shutdown requested. Exiting.\n");
         return false;
     }
@@ -1663,16 +1660,16 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // Wait for genesis block to be processed
     {
         WAIT_LOCK(g_genesis_wait_mutex, lock);
-        // We previously could hang here if StartShutdown() is called prior to
+        // We previously could hang here if node.kernel->interrupt() is called prior to
         // ThreadImport getting started, so instead we just wait on a timer to
-        // check ShutdownRequested() regularly.
-        while (!fHaveGenesis && !ShutdownRequested()) {
+        // check node.kernel->interrupt regularly.
+        while (!fHaveGenesis && !node.kernel->interrupt) {
             g_genesis_wait_cv.wait_for(lock, std::chrono::milliseconds(500));
         }
         block_notify_genesis_wait_connection.disconnect();
     }
 
-    if (ShutdownRequested()) {
+    if (node.kernel->interrupt) {
         return false;
     }
 

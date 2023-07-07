@@ -14,7 +14,6 @@
 #include <logging.h>
 #include <node/abort.h>
 #include <node/interface_ui.h>
-#include <shutdown.h>
 #include <util/check.h>
 #include <util/strencodings.h>
 #include <util/string.h>
@@ -79,12 +78,13 @@ void KernelNotifications::warning(const bilingual_str& warning)
 
 void KernelNotifications::flushError(const std::string& debug_message)
 {
-    AbortNode(m_exit_status, debug_message);
+    AbortNode(&m_interrupt, m_exit_status, debug_message);
 }
 
 void KernelNotifications::fatalError(const std::string& debug_message, const bilingual_str& user_message)
 {
-    node::AbortNode(m_exit_status, debug_message, user_message, m_shutdown_on_fatal_error);
+    node::AbortNode(m_shutdown_on_fatal_error ? &m_interrupt : nullptr,
+                    m_exit_status, debug_message, user_message);
 }
 
 } // namespace node

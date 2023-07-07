@@ -15,11 +15,15 @@ class CBlockIndex;
 enum class SynchronizationState;
 struct bilingual_str;
 
+namespace util {
+class SignalInterrupt;
+} // namespace util
+
 namespace node {
 class KernelNotifications : public kernel::Notifications
 {
 public:
-    KernelNotifications(std::atomic<int>& exit_status) : m_exit_status{exit_status} {}
+    KernelNotifications(util::SignalInterrupt& interrupt, std::atomic<int>& exit_status) : m_interrupt(interrupt), m_exit_status{exit_status} {}
 
     void blockTip(SynchronizationState state, CBlockIndex& index) override;
 
@@ -36,6 +40,7 @@ public:
     //! Useful for tests, can be set to false to avoid shutdown on fatal error.
     bool m_shutdown_on_fatal_error{true};
 private:
+    util::SignalInterrupt& m_interrupt;
     std::atomic<int>& m_exit_status;
 };
 } // namespace node
