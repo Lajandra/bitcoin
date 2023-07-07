@@ -21,6 +21,7 @@
 #include <flatfile.h>
 #include <hash.h>
 #include <kernel/chainparams.h>
+#include <kernel/context.h>
 #include <kernel/mempool_entry.h>
 #include <kernel/notifications_interface.h>
 #include <logging.h>
@@ -37,7 +38,6 @@
 #include <reverse_iterator.h>
 #include <script/script.h>
 #include <script/sigcache.h>
-#include <shutdown.h>
 #include <signet.h>
 #include <tinyformat.h>
 #include <txdb.h>
@@ -3177,7 +3177,9 @@ bool Chainstate::ActivateBestChain(BlockValidationState& state, std::shared_ptr<
         }
         // When we reach this point, we switched to a new tip (stored in pindexNewTip).
 
-        if (m_chainman.StopAtHeight() && pindexNewTip && pindexNewTip->nHeight >= m_chainman.StopAtHeight()) StartShutdown();
+        // Accessing g_context is a temporary hack that can be removed when
+        // -stopatheight implementation is cleaned up in #28048.
+        if (m_chainman.StopAtHeight() && pindexNewTip && pindexNewTip->nHeight >= m_chainman.StopAtHeight()) Assert(kernel::g_context)->interrupt();
 
         if (WITH_LOCK(::cs_main, return m_disabled)) {
             // Background chainstate has reached the snapshot base block, so exit.
