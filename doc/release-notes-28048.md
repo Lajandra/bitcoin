@@ -1,0 +1,1 @@
+- The `-stopatheight` option will now stop exactly at the specified height, rather than at or above the specified height. Since the node shuts down as soon as it find a valid chain at the specified height, it is possible for the resulting chain to no longer be the most-work chain, if some of the blocks above the specified height are invalid.

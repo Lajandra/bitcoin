@@ -11,17 +11,24 @@
 #include <cstdint>
 #include <string>
 
+class ArgsManager;
 class CBlockIndex;
 enum class SynchronizationState;
 struct bilingual_str;
 
 namespace node {
+
+static constexpr bool DEFAULT_STOPAFTERBLOCKIMPORT{false};
+static constexpr int DEFAULT_STOPATHEIGHT{0};
+
 class KernelNotifications : public kernel::Notifications
 {
 public:
     KernelNotifications(std::atomic<int>& exit_status) : m_exit_status{exit_status} {}
 
-    void blockTip(SynchronizationState state, CBlockIndex& index) override;
+    [[nodiscard]] kernel::InterruptResult blocksImported() override;
+
+    [[nodiscard]] kernel::InterruptResult blockTip(SynchronizationState state, CBlockIndex& index) override;
 
     void headerTip(SynchronizationState state, int64_t height, int64_t timestamp, bool presync) override;
 
@@ -33,11 +40,18 @@ public:
 
     void fatalError(const std::string& debug_message, const bilingual_str& user_message = {}) override;
 
+    //! Whether or not to return Interrupted{} after blocksImported notification.
+    bool m_stop_after_block_import{DEFAULT_STOPAFTERBLOCKIMPORT};
+    //! Block height after which blockTip notification will return Interrupted{}, if >0.
+    int m_stop_at_height{DEFAULT_STOPATHEIGHT};
     //! Useful for tests, can be set to false to avoid shutdown on fatal error.
     bool m_shutdown_on_fatal_error{true};
 private:
     std::atomic<int>& m_exit_status;
 };
+
+void ReadNotificationArgs(const ArgsManager& args, KernelNotifications& notifications);
+
 } // namespace node
 
 #endif // BITCOIN_NODE_KERNEL_NOTIFICATIONS_H

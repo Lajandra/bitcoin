@@ -946,6 +946,24 @@ void ImportBlocks(ChainstateManager& chainman, std::vector<fs::path> vImportFile
                 return;
             }
         }
+<<<<<<< HEAD
+||||||| parent of 3e6b6877645f (kernel: Remove StartShutdown calls from validation code)
+
+        if (chainman.m_blockman.StopAfterBlockImport()) {
+            LogPrintf("Stopping after block import\n");
+            StartShutdown();
+            return;
+        }
+=======
+
+        if (kernel::IsInterrupted(chainman.GetNotifications().blocksImported())) {
+            LogPrintf("Stopping after block import\n");
+            // Just returning void for now. This could be changed to bubble up
+            // the kernel::Interrupted value to the caller so the caller could
+            // distinguish between completed and interrupted operations.
+            return;
+        }
+>>>>>>> 3e6b6877645f (kernel: Remove StartShutdown calls from validation code)
     } // End scope of ImportingNow
 }
 } // namespace node
