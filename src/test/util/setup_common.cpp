@@ -37,7 +37,6 @@
 #include <rpc/server.h>
 #include <scheduler.h>
 #include <script/sigcache.h>
-#include <shutdown.h>
 #include <streams.h>
 #include <test/util/net.h>
 #include <test/util/txmempool.h>
@@ -183,7 +182,7 @@ ChainTestingSetup::ChainTestingSetup(const ChainType chainType, const std::vecto
 
     m_cache_sizes = CalculateCacheSizes(m_args);
 
-    m_node.notifications = std::make_unique<KernelNotifications>(m_node.exit_status);
+    m_node.notifications = std::make_unique<KernelNotifications>(m_node.kernel->interrupt, m_node.exit_status);
 
     const ChainstateManager::Options chainman_opts{
         .chainparams = chainparams,
