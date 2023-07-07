@@ -15,7 +15,6 @@
 #include <logging.h>
 #include <node/abort.h>
 #include <node/interface_ui.h>
-#include <shutdown.h>
 #include <util/check.h>
 #include <util/strencodings.h>
 #include <util/string.h>
@@ -61,7 +60,7 @@ namespace node {
 kernel::InterruptResult KernelNotifications::blocksImported()
 {
     if (m_stop_after_block_import) {
-        StartShutdown();
+        m_interrupt();
         return kernel::Interrupted{};
     }
     return {};
@@ -71,7 +70,7 @@ kernel::InterruptResult KernelNotifications::blockTip(SynchronizationState state
 {
     uiInterface.NotifyBlockTip(state, &index);
     if (m_stop_at_height && index.nHeight >= m_stop_at_height) {
-        StartShutdown();
+        m_interrupt();
         return kernel::Interrupted{};
     }
     return {};
@@ -94,12 +93,13 @@ void KernelNotifications::warning(const bilingual_str& warning)
 
 void KernelNotifications::flushError(const std::string& debug_message)
 {
-    AbortNode(m_exit_status, debug_message);
+    AbortNode(&m_interrupt, m_exit_status, debug_message);
 }
 
 void KernelNotifications::fatalError(const std::string& debug_message, const bilingual_str& user_message)
 {
-    node::AbortNode(m_exit_status, debug_message, user_message, m_shutdown_on_fatal_error);
+    node::AbortNode(m_shutdown_on_fatal_error ? &m_interrupt : nullptr,
+                    m_exit_status, debug_message, user_message);
 }
 
 void ReadNotificationArgs(const ArgsManager& args, KernelNotifications& notifications)
