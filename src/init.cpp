@@ -114,7 +114,8 @@
 #include <zmq/zmqrpc.h>
 #endif
 
-using kernel::DEFAULT_STOPAFTERBLOCKIMPORT;
+using node::DEFAULT_STOPAFTERBLOCKIMPORT;
+using node::DEFAULT_STOPATHEIGHT;
 using kernel::DumpMempool;
 using kernel::ValidationCacheSizes;
 
@@ -1409,6 +1410,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // ********************************************************* Step 7: load block chain
 
     node.notifications = std::make_unique<KernelNotifications>(node.exit_status);
+    ReadNotificationArgs(args, *node.notifications);
     fReindex = args.GetBoolArg("-reindex", false);
     bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
     ChainstateManager::Options chainman_opts{
